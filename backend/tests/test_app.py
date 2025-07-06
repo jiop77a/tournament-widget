@@ -115,3 +115,101 @@ def test_store_result(client):
     assert response.status_code == 200
     data = response.get_json()
     assert data["message"] == "Result stored successfully!"
+
+
+# Error handling tests
+def test_create_tournament_missing_input_question(client):
+    # Test POST /tournament with missing input_question - should return 400
+    response = client.post(
+        "/api/tournament",
+        json={
+            "custom_prompts": [
+                "Can you tell me the capital of Spain?",
+                "Which city is the capital of Spain?",
+            ],
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_create_tournament_empty_input_question(client):
+    # Test POST /tournament with empty input_question - should return 400
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "",
+            "custom_prompts": [
+                "Can you tell me the capital of Spain?",
+                "Which city is the capital of Spain?",
+            ],
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_create_tournament_whitespace_input_question(client):
+    # Test POST /tournament with whitespace-only input_question - should return 400
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "   ",
+            "custom_prompts": [
+                "Can you tell me the capital of Spain?",
+                "Which city is the capital of Spain?",
+            ],
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_get_tournament_not_found(client):
+    # Test GET /tournament/{id} with non-existent tournament - should return 404
+    response = client.get("/api/tournament/99999")
+    assert response.status_code == 404
+
+
+def test_create_match_tournament_not_found(client):
+    # Test POST /match with non-existent tournament - should return 404
+    prompt_1 = Prompt.query.first()
+    prompt_2 = Prompt.query.first()
+    response = client.post(
+        "/api/match",
+        json={
+            "tournament_id": 99999,
+            "prompt_1_id": prompt_1.id,
+            "prompt_2_id": prompt_2.id,
+        },
+    )
+    assert response.status_code == 404
+
+
+def test_create_match_prompt_not_found(client):
+    # Test POST /match with non-existent prompt - should return 404
+    tournament = Tournament.query.first()
+    response = client.post(
+        "/api/match",
+        json={
+            "tournament_id": tournament.id,
+            "prompt_1_id": 99999,
+            "prompt_2_id": 99999,
+        },
+    )
+    assert response.status_code == 404
+
+
+def test_store_result_match_not_found(client):
+    # Test POST /result with non-existent match - should return 404
+    prompt_1 = Prompt.query.first()
+    response = client.post(
+        "/api/result", json={"match_id": 99999, "winner_id": prompt_1.id}
+    )
+    assert response.status_code == 404
+
+
+def test_store_result_winner_not_found(client):
+    # Test POST /result with non-existent winner - should return 404
+    match = Match.query.first()
+    response = client.post(
+        "/api/result", json={"match_id": match.id, "winner_id": 99999}
+    )
+    assert response.status_code == 404

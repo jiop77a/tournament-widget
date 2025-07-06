@@ -1,7 +1,7 @@
 import os
 
 from app import db
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, abort, jsonify, request
 from models import InputQuestion, Match, Prompt, PromptMetaData, Tournament
 from openai import OpenAI
 
@@ -16,7 +16,11 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 @tournament_bp.route("/tournament", methods=["POST"])
 def create_tournament():
     data = request.json
-    input_question_text = data["input_question"]
+
+    # Check if input_question exists and is not empty
+    input_question_text = data.get("input_question")
+    if not input_question_text or not input_question_text.strip():
+        abort(400, description="Input question is required and cannot be empty")
 
     # Create the InputQuestion
     input_question = InputQuestion(question_text=input_question_text)
