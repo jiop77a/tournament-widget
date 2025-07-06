@@ -1,10 +1,10 @@
 import os
 
+from database import db
 from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_cors import CORS  # For cross-origin requests
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 
 # Load environment variables from .env file in parent directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
@@ -21,11 +21,11 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # Disable modification tracking
 
 # Initialize SQLAlchemy and CORS
-db = SQLAlchemy(app)
+db.init_app(app)
 CORS(app)  # Enable CORS for all routes
 
 # Import models after db initialization to avoid circular imports
-from models import InputQuestion, Match, Prompt, PromptMetaData, Tournament
+import models
 
 # Initialize Flask-Migrate after the models are loaded
 migrate = Migrate(app, db)
@@ -44,4 +44,4 @@ def home():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

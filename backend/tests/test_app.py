@@ -75,48 +75,51 @@ def test_create_tournament(client):
 
 
 def test_get_tournament(client):
-    # Test GET /tournament/{id} route
+    # Test GET /tournament/{id}/status route (updated API)
     tournament = Tournament.query.first()
-    response = client.get(f"/api/tournament/{tournament.id}")
+    response = client.get(f"/api/tournament/{tournament.id}/status")
     assert response.status_code == 200
     data = response.get_json()
     assert "tournament_id" in data
+    assert "status" in data
+    assert "rounds" in data
     assert data["input_question"] == tournament.input_question.question_text
 
 
 def test_create_match(client):
-    # Test POST /match route
-    tournament = Tournament.query.first()
-    prompt_1 = Prompt.query.first()
-    prompt_2 = Prompt.query.first()
+    # Test tournament bracket creation (matches are created automatically)
+    # Create a fresh tournament without pre-existing matches
     response = client.post(
-        "/api/match",
+        "/api/tournament",
         json={
-            "tournament_id": tournament.id,
-            "prompt_1_id": prompt_1.id,
-            "prompt_2_id": prompt_2.id,
+            "input_question": "What is the best programming language?",
+            "custom_prompts": [
+                "Which programming language is best?",
+                "What language should I learn?",
+                "Tell me the top programming language",
+                "What is your favorite programming language?",
+            ],
+            "total_prompts": 4,
         },
     )
     assert response.status_code == 201
+    tournament_data = response.get_json()
+    tournament_id = tournament_data["tournament_id"]
+
+    # Start the tournament bracket to create matches automatically
+    response = client.post(f"/api/tournament/{tournament_id}/start-bracket")
+    assert response.status_code == 201
     data = response.get_json()
-    assert "match_id" in data
-    assert (
-        data["round_number"] == 2
-    )  # Should be round 2 since we already have a match in round 1
-    assert data["prompt_1"] == prompt_1.prompt_text
-    assert data["prompt_2"] == prompt_2.prompt_text
+    assert "message" in data
+    assert "round_1_matches" in data
+    assert data["total_matches"] >= 1  # Should have at least one match
 
-
-def test_store_result(client):
-    # Test POST /result route
-    match = Match.query.first()
-    prompt_1 = Prompt.query.first()
-    response = client.post(
-        "/api/result", json={"match_id": match.id, "winner_id": prompt_1.id}
-    )
+    # Verify matches were created by checking tournament status
+    response = client.get(f"/api/tournament/{tournament_id}/status")
     assert response.status_code == 200
-    data = response.get_json()
-    assert data["message"] == "Result stored successfully!"
+    status_data = response.get_json()
+    assert "rounds" in status_data
+    assert "1" in status_data["rounds"]  # Should have round 1
 
 
 # Error handling tests
@@ -170,51 +173,39 @@ def test_get_tournament_not_found(client):
     assert response.status_code == 404
 
 
-def test_create_match_tournament_not_found(client):
-    # Test POST /match with non-existent tournament - should return 404
-    prompt_1 = Prompt.query.first()
-    prompt_2 = Prompt.query.first()
+def test_start_bracket_tournament_not_found(client):
+    # Test POST /tournament/{id}/start-bracket with non-existent tournament - should return 404
+    response = client.post("/api/tournament/99999/start-bracket")
+    assert response.status_code == 404
+
+
+def test_start_bracket_already_started(client):
+    # Test POST /tournament/{id}/start-bracket when bracket already started - should return 400
+    # Create a fresh tournament without pre-existing matches
     response = client.post(
-        "/api/match",
+        "/api/tournament",
         json={
-            "tournament_id": 99999,
-            "prompt_1_id": prompt_1.id,
-            "prompt_2_id": prompt_2.id,
+            "input_question": "What is the best sport?",
+            "custom_prompts": [
+                "Which sport is best?",
+                "What sport should I play?",
+            ],
+            "total_prompts": 2,
         },
     )
-    assert response.status_code == 404
+    assert response.status_code == 201
+    tournament_data = response.get_json()
+    tournament_id = tournament_data["tournament_id"]
 
+    # Start bracket first time - should succeed
+    response = client.post(f"/api/tournament/{tournament_id}/start-bracket")
+    assert response.status_code == 201
 
-def test_create_match_prompt_not_found(client):
-    # Test POST /match with non-existent prompt - should return 404
-    tournament = Tournament.query.first()
-    response = client.post(
-        "/api/match",
-        json={
-            "tournament_id": tournament.id,
-            "prompt_1_id": 99999,
-            "prompt_2_id": 99999,
-        },
-    )
-    assert response.status_code == 404
-
-
-def test_store_result_match_not_found(client):
-    # Test POST /result with non-existent match - should return 404
-    prompt_1 = Prompt.query.first()
-    response = client.post(
-        "/api/result", json={"match_id": 99999, "winner_id": prompt_1.id}
-    )
-    assert response.status_code == 404
-
-
-def test_store_result_winner_not_found(client):
-    # Test POST /result with non-existent winner - should return 404
-    match = Match.query.first()
-    response = client.post(
-        "/api/result", json={"match_id": match.id, "winner_id": 99999}
-    )
-    assert response.status_code == 404
+    # Try to start bracket again - should fail
+    response = client.post(f"/api/tournament/{tournament_id}/start-bracket")
+    assert response.status_code == 400
+    data = response.get_json()
+    assert "already started" in data["error"].lower()
 
 
 # Total prompts validation tests
@@ -236,20 +227,23 @@ def test_create_tournament_with_valid_total_prompts(client):
     assert len(data["prompts"]) == 4  # Should have exactly 4 prompts
 
 
-def test_create_tournament_with_odd_total_prompts_error(client):
-    # Test POST /tournament with odd total_prompts - should return 400
+def test_create_tournament_with_odd_total_prompts_success(client):
+    # Test POST /tournament with odd total_prompts - should succeed (bye logic handles odd numbers)
     response = client.post(
         "/api/tournament",
         json={
             "input_question": "What is the capital of Germany?",
-            "total_prompts": 5,  # Odd number
+            "total_prompts": 5,  # Odd number - should work with bye logic
             "custom_prompts": [
                 "Tell me Germany's capital",
                 "What city is Germany's capital?",
             ],
         },
     )
-    assert response.status_code == 400
+    assert response.status_code == 201
+    data = response.get_json()
+    assert "tournament_id" in data
+    assert len(data["prompts"]) == 5  # Should have exactly 5 prompts
 
 
 def test_create_tournament_with_negative_total_prompts_error(client):

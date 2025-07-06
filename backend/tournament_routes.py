@@ -1,6 +1,7 @@
 import os
+import random
 
-from app import db
+from database import db
 from flask import Blueprint, abort, jsonify, request
 from models import InputQuestion, Match, Prompt, PromptMetaData, Tournament
 from openai import OpenAI
@@ -36,7 +37,7 @@ def create_tournament():
     # Remove duplicates from custom prompts first
     prompts = remove_duplicate_prompts(prompts)
 
-    # Get total_prompts parameter, validate it's even, default to DEFAULT_TOTAL_PROMPTS
+    # Get total_prompts parameter, default to DEFAULT_TOTAL_PROMPTS
     total_prompts = data.get("total_prompts", DEFAULT_TOTAL_PROMPTS)
 
     # Validate total_prompts
@@ -44,8 +45,8 @@ def create_tournament():
         abort(400, description="total_prompts must be an integer")
     if total_prompts <= 0:
         abort(400, description="total_prompts must be a positive number")
-    if total_prompts % 2 != 0:
-        abort(400, description="total_prompts must be an even number")
+    if total_prompts < 2:
+        abort(400, description="total_prompts must be at least 2 for a tournament")
 
     # Generate additional prompts if needed, ensuring uniqueness
     max_attempts = 3  # Limit attempts to avoid infinite loops
@@ -104,82 +105,89 @@ def create_tournament():
     )
 
 
-# Route to retrieve tournament details by ID
-@tournament_bp.route("/tournament/<int:tournament_id>", methods=["GET"])
-def get_tournament(tournament_id):
+# Route to retrieve comprehensive tournament status
+@tournament_bp.route("/tournament/<int:tournament_id>/status", methods=["GET"])
+def get_tournament_status(tournament_id):
     tournament = db.get_or_404(Tournament, tournament_id)
+
+    # Get all matches organized by round
+    matches_by_round = {}
+    for match in tournament.rounds:
+        round_num = match.round_number
+        if round_num not in matches_by_round:
+            matches_by_round[round_num] = []
+
+        match_data = {
+            "match_id": match.id,
+            "prompt_1": match.prompt_1.prompt_text,
+            "prompt_2": match.prompt_2.prompt_text,
+            "status": match.status,
+            "winner": match.winner.prompt_text if match.winner else None,
+        }
+        matches_by_round[round_num].append(match_data)
+
+    # Calculate tournament progress
+    total_matches = len(tournament.rounds)
+    completed_matches = len([m for m in tournament.rounds if m.status == "completed"])
+
+    # Get current round (highest round number with pending matches, or highest completed round)
+    current_round = 1
+    if tournament.rounds:
+        pending_rounds = [
+            m.round_number for m in tournament.rounds if m.status == "pending"
+        ]
+        if pending_rounds:
+            current_round = min(pending_rounds)
+        else:
+            current_round = max(m.round_number for m in tournament.rounds)
+
+    # Get tournament winner if completed
+    winner = None
+    if tournament.status == "completed" and tournament.rounds:
+        final_matches = [m for m in tournament.rounds if m.status == "completed"]
+        if final_matches:
+            # Find the match with the highest round number
+            final_match = max(final_matches, key=lambda m: m.round_number)
+            winner = final_match.winner.prompt_text if final_match.winner else None
 
     # Prepare the response data
     tournament_data = {
         "tournament_id": tournament.id,
         "input_question": tournament.input_question.question_text,
         "status": tournament.status,
-        "rounds": [],
+        "current_round": current_round,
+        "total_prompts": len(tournament.input_question.prompts),
+        "progress": {
+            "total_matches": total_matches,
+            "completed_matches": completed_matches,
+            "completion_percentage": round(
+                (completed_matches / total_matches * 100) if total_matches > 0 else 0, 1
+            ),
+        },
+        "rounds": matches_by_round,
+        "winner": winner,
     }
-
-    # Add round and match data
-    for match in tournament.rounds:
-        match_data = {
-            "round_number": match.round_number,
-            "prompt_1": match.prompt_1.prompt_text,
-            "prompt_2": match.prompt_2.prompt_text,
-            "status": match.status,
-            "winner": match.winner_id and match.winner.prompt_text,
-        }
-        tournament_data["rounds"].append(match_data)
 
     return jsonify(tournament_data)
 
 
-# Route to create a new match in the tournament
-@tournament_bp.route("/match", methods=["POST"])
-def create_match():
+# Route to store the result of a match and automatically advance tournament
+@tournament_bp.route("/match/<int:match_id>/result", methods=["POST"])
+def store_match_result(match_id):
     data = request.json
-    tournament_id = data["tournament_id"]
-    prompt_1_id = data["prompt_1_id"]
-    prompt_2_id = data["prompt_2_id"]
-
-    # Fetch the tournament and prompts
-    tournament = db.get_or_404(Tournament, tournament_id)
-    prompt_1 = db.get_or_404(Prompt, prompt_1_id)
-    prompt_2 = db.get_or_404(Prompt, prompt_2_id)
-
-    # Create a new match for the tournament
-    round_number = len(tournament.rounds) + 1  # New round number
-    match = Match(
-        tournament_id=tournament.id,
-        prompt_1_id=prompt_1.id,
-        prompt_2_id=prompt_2.id,
-        round_number=round_number,
-    )
-
-    db.session.add(match)
-    db.session.commit()
-
-    return (
-        jsonify(
-            {
-                "match_id": match.id,
-                "tournament_id": tournament.id,
-                "round_number": match.round_number,
-                "prompt_1": prompt_1.prompt_text,
-                "prompt_2": prompt_2.prompt_text,
-            }
-        ),
-        201,
-    )
-
-
-# Route to store the result of a match (which prompt won)
-@tournament_bp.route("/result", methods=["POST"])
-def store_result():
-    data = request.json
-    match_id = data["match_id"]
     winner_id = data["winner_id"]
 
     # Fetch the match and winner prompt
     match = db.get_or_404(Match, match_id)
     winner_prompt = db.get_or_404(Prompt, winner_id)
+
+    # Validate that winner is one of the match participants
+    if winner_id not in [match.prompt_1_id, match.prompt_2_id]:
+        return jsonify({"error": "Winner must be one of the match participants"}), 400
+
+    # Check if match is already completed
+    if match.status == "completed":
+        return jsonify({"error": "Match already completed"}), 400
 
     # Update match status
     match.winner_id = winner_prompt.id
@@ -193,6 +201,7 @@ def store_result():
         prompt_metadata = PromptMetaData(
             prompt_id=winner_prompt.id, tournament_id=match.tournament_id, win_count=1
         )
+        db.session.add(prompt_metadata)
     else:
         prompt_metadata.win_count += 1
 
@@ -207,12 +216,214 @@ def store_result():
         loser_metadata = PromptMetaData(
             prompt_id=loser_prompt.id, tournament_id=match.tournament_id, loss_count=1
         )
+        db.session.add(loser_metadata)
     else:
         loser_metadata.loss_count += 1
 
     db.session.commit()
 
-    return jsonify({"message": "Result stored successfully!"})
+    # Check if round is complete and create next round if needed
+    next_round_info = _check_and_create_next_round(
+        match.tournament_id, match.round_number
+    )
+
+    response_data = {
+        "message": "Match result stored successfully",
+        "match_id": match.id,
+        "winner": winner_prompt.prompt_text,
+        "round_completed": next_round_info["round_completed"],
+    }
+
+    if next_round_info["next_round_created"]:
+        response_data["next_round"] = next_round_info["next_round_number"]
+        response_data["next_round_matches"] = next_round_info["matches_created"]
+
+    if next_round_info["tournament_completed"]:
+        response_data["tournament_completed"] = True
+        response_data["tournament_winner"] = winner_prompt.prompt_text
+        # Update tournament status
+        tournament = Tournament.query.get(match.tournament_id)
+        tournament.status = "completed"
+        db.session.commit()
+
+    return jsonify(response_data)
+
+
+# Helper function to check if round is complete and create next round
+def _check_and_create_next_round(tournament_id, current_round):
+    # Get all matches in current round
+    current_round_matches = Match.query.filter_by(
+        tournament_id=tournament_id, round_number=current_round
+    ).all()
+
+    # Check if all matches in current round are completed
+    completed_matches = [m for m in current_round_matches if m.status == "completed"]
+    round_completed = len(completed_matches) == len(current_round_matches)
+
+    result = {
+        "round_completed": round_completed,
+        "next_round_created": False,
+        "tournament_completed": False,
+        "next_round_number": None,
+        "matches_created": [],
+    }
+
+    if not round_completed:
+        return result
+
+    # Get winners from current round
+    winners = [match.winner for match in completed_matches]
+
+    # To determine if tournament is complete, we need to count all remaining contestants
+    # This includes winners from this round PLUS any prompts that didn't participate in this round (byes)
+
+    # Get all prompts that participated in this round
+    participating_prompts = set()
+    for match in current_round_matches:
+        participating_prompts.add(match.prompt_1_id)
+        participating_prompts.add(match.prompt_2_id)
+
+    # Get all prompts in the tournament
+    tournament = Tournament.query.get(tournament_id)
+    all_tournament_prompts = set(p.id for p in tournament.input_question.prompts)
+
+    # Find prompts that got byes this round (didn't participate)
+    bye_prompts = all_tournament_prompts - participating_prompts
+
+    # Total remaining contestants = winners from this round + bye prompts
+    total_remaining = len(winners) + len(bye_prompts)
+
+    # If only one contestant remains, tournament is complete
+    if total_remaining == 1:
+        result["tournament_completed"] = True
+        return result
+
+    # Create next round matches
+    next_round_number = current_round + 1
+    matches_created = []
+
+    # Combine winners from this round with bye prompts to get all advancing contestants
+    advancing_prompts = winners[:]  # Copy winners list
+
+    # Add bye prompts (those that didn't participate in this round)
+    for prompt_id in bye_prompts:
+        prompt = Prompt.query.get(prompt_id)
+        advancing_prompts.append(prompt)
+
+    # Create matches for pairs of advancing prompts
+    for i in range(0, len(advancing_prompts), 2):
+        if i + 1 < len(advancing_prompts):  # Ensure we have a pair
+            next_match = Match(
+                tournament_id=tournament_id,
+                prompt_1_id=advancing_prompts[i].id,
+                prompt_2_id=advancing_prompts[i + 1].id,
+                round_number=next_round_number,
+            )
+            db.session.add(next_match)
+            matches_created.append(
+                {
+                    "prompt_1": advancing_prompts[i].prompt_text,
+                    "prompt_2": advancing_prompts[i + 1].prompt_text,
+                }
+            )
+
+    # Commit the new matches
+    if matches_created:
+        db.session.commit()
+        result["next_round_created"] = True
+        result["next_round_number"] = next_round_number
+        result["matches_created"] = matches_created
+
+    return result
+
+
+# Route to start tournament bracket (automatically create first round matches)
+@tournament_bp.route("/tournament/<int:tournament_id>/start-bracket", methods=["POST"])
+def start_tournament_bracket(tournament_id):
+    tournament = db.get_or_404(Tournament, tournament_id)
+
+    # Check if tournament already has matches
+    if tournament.rounds:
+        return jsonify({"error": "Tournament bracket already started"}), 400
+
+    # Get all prompts for this tournament
+    prompts = tournament.input_question.prompts
+
+    if len(prompts) < 2:
+        return jsonify({"error": "Need at least 2 prompts to start tournament"}), 400
+
+    # Shuffle prompts for random pairing
+    prompt_list = list(prompts)
+    random.shuffle(prompt_list)
+
+    # Create first round matches
+    matches_created = []
+    for i in range(0, len(prompt_list), 2):
+        if i + 1 < len(prompt_list):  # Ensure we have a pair
+            match = Match(
+                tournament_id=tournament.id,
+                prompt_1_id=prompt_list[i].id,
+                prompt_2_id=prompt_list[i + 1].id,
+                round_number=1,
+            )
+            db.session.add(match)
+            matches_created.append(
+                {
+                    "prompt_1": prompt_list[i].prompt_text,
+                    "prompt_2": prompt_list[i + 1].prompt_text,
+                }
+            )
+
+    # Update tournament status
+    tournament.status = "in_progress"
+    db.session.commit()
+
+    return (
+        jsonify(
+            {
+                "message": "Tournament bracket started",
+                "tournament_id": tournament.id,
+                "round_1_matches": matches_created,
+                "total_matches": len(matches_created),
+            }
+        ),
+        201,
+    )
+
+
+# Route to get all matches for a tournament
+@tournament_bp.route("/tournament/<int:tournament_id>/matches", methods=["GET"])
+def get_tournament_matches(tournament_id):
+    tournament = db.get_or_404(Tournament, tournament_id)
+
+    # Optional round filter
+    round_number = request.args.get("round", type=int)
+
+    matches_query = Match.query.filter_by(tournament_id=tournament.id)
+    if round_number:
+        matches_query = matches_query.filter_by(round_number=round_number)
+
+    matches = matches_query.order_by(Match.round_number, Match.id).all()
+
+    matches_data = []
+    for match in matches:
+        match_data = {
+            "match_id": match.id,
+            "round_number": match.round_number,
+            "prompt_1": match.prompt_1.prompt_text,
+            "prompt_2": match.prompt_2.prompt_text,
+            "status": match.status,
+            "winner": match.winner.prompt_text if match.winner else None,
+        }
+        matches_data.append(match_data)
+
+    return jsonify(
+        {
+            "tournament_id": tournament.id,
+            "matches": matches_data,
+            "total_matches": len(matches_data),
+        }
+    )
 
 
 # Route to get all prompts (for debugging or UI)
