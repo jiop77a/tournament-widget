@@ -1,8 +1,12 @@
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS  # For cross-origin requests
-from datetime import datetime
+from flask_migrate import Migrate
+from dotenv import load_dotenv
 import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Initialize the Flask application and the database
 app = Flask(__name__)
@@ -21,6 +25,9 @@ CORS(app)  # Enable CORS for all routes
 
 # Import models after db initialization to avoid circular imports
 from models import InputQuestion, Prompt, Tournament, Match, PromptMetaData
+
+# Initialize Flask-Migrate after the models are loaded
+migrate = Migrate(app, db)
 
 
 # Basic route to test the setup
