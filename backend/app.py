@@ -29,6 +29,12 @@ from models import InputQuestion, Prompt, Tournament, Match, PromptMetaData
 # Initialize Flask-Migrate after the models are loaded
 migrate = Migrate(app, db)
 
+# Import the Blueprint for tournament-related routes
+from tournament_routes import tournament_bp
+
+# Register the Blueprint with the Flask app
+app.register_blueprint(tournament_bp, url_prefix="/api")
+
 
 # Basic route to test the setup
 @app.route("/")
