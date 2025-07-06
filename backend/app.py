@@ -1,12 +1,13 @@
-from flask import Flask, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS  # For cross-origin requests
-from flask_migrate import Migrate
-from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
-load_dotenv()
+from dotenv import load_dotenv
+from flask import Flask, jsonify
+from flask_cors import CORS  # For cross-origin requests
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+
+# Load environment variables from .env file in parent directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # Initialize the Flask application and the database
 app = Flask(__name__)
@@ -24,7 +25,7 @@ db = SQLAlchemy(app)
 CORS(app)  # Enable CORS for all routes
 
 # Import models after db initialization to avoid circular imports
-from models import InputQuestion, Prompt, Tournament, Match, PromptMetaData
+from models import InputQuestion, Match, Prompt, PromptMetaData, Tournament
 
 # Initialize Flask-Migrate after the models are loaded
 migrate = Migrate(app, db)

@@ -1,9 +1,15 @@
+import os
+
 from app import db
 from flask import Blueprint, jsonify, request
 from models import InputQuestion, Match, Prompt, PromptMetaData, Tournament
+from openai import OpenAI
 
 # Create a Blueprint for tournament-related routes
 tournament_bp = Blueprint("tournament", __name__)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # Route to create a tournament
@@ -17,8 +23,24 @@ def create_tournament():
     db.session.add(input_question)
     db.session.commit()
 
-    # Generate Prompts or use provided custom prompts
-    prompts = data.get("custom_prompts", auto_generate_prompts(input_question_text))
+    # Get custom prompts or start with empty list
+    prompts = data.get("custom_prompts", [])
+
+    # Ensure we have at least 8 prompts for the tournament
+    if len(prompts) < 8:
+        additional_prompts_needed = 8 - len(prompts)
+        try:
+            ai_generated_prompts = generate_prompts_with_ai(
+                input_question_text, additional_prompts_needed
+            )
+            prompts.extend(ai_generated_prompts)
+        except Exception as e:
+            # If AI generation fails, fall back to simple variations
+            print(f"AI prompt generation failed: {e}")
+            fallback_prompts = generate_fallback_prompts(
+                input_question_text, additional_prompts_needed
+            )
+            prompts.extend(fallback_prompts)
 
     # Add the prompts to the database
     for prompt_text in prompts:
@@ -42,16 +64,6 @@ def create_tournament():
         ),
         201,
     )
-
-
-# Helper function to auto-generate prompts
-def auto_generate_prompts(input_question):
-    return [
-        f"Can you tell me the capital city of {input_question.split()[-1]}?",
-        f"Which city is the capital of {input_question.split()[-1]}?",
-        f"Where is the capital of {input_question.split()[-1]} located?",
-        f"What is the name of {input_question.split()[-1]} capital city?",
-    ]
 
 
 # Route to retrieve tournament details by ID
@@ -172,3 +184,53 @@ def get_all_prompts():
     return jsonify(
         [{"id": prompt.id, "text": prompt.prompt_text} for prompt in prompts]
     )
+
+
+def generate_prompts_with_ai(input_question, num_prompts_needed):
+    """Generate additional prompts using ChatGPT API"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that generates diverse prompt variations for AI testing. Generate prompts that ask the same question in different ways, with varying styles, formality levels, and approaches.",
+                },
+                {
+                    "role": "user",
+                    "content": f"Generate {num_prompts_needed} different ways to ask this question: '{input_question}'. Each prompt should be unique and ask for the same information but with different phrasing, tone, or approach. Return only the prompts, one per line, without numbering or bullet points.",
+                },
+            ],
+            max_tokens=500,
+            temperature=0.8,
+        )
+
+        # Parse the response to extract individual prompts
+        generated_text = response.choices[0].message.content.strip()
+        prompts = [
+            prompt.strip() for prompt in generated_text.split("\n") if prompt.strip()
+        ]
+
+        # Return only the number of prompts we need
+        return prompts[:num_prompts_needed]
+
+    except Exception as e:
+        print(f"Error generating prompts with AI: {e}")
+        raise e
+
+
+def generate_fallback_prompts(input_question, num_prompts_needed):
+    """Generate simple fallback prompts if AI generation fails"""
+    fallback_templates = [
+        f"Please tell me: {input_question}",
+        f"I would like to know: {input_question}",
+        f"Could you explain: {input_question}",
+        f"Help me understand: {input_question}",
+        f"What is the answer to: {input_question}",
+        f"Can you provide information about: {input_question}",
+        f"I need to know: {input_question}",
+        f"Please clarify: {input_question}",
+    ]
+
+    # Return the needed number of fallback prompts
+    return fallback_templates[:num_prompts_needed]
