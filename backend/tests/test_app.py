@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from app import app, db
 from models import InputQuestion, Match, Prompt, Tournament
@@ -367,3 +369,134 @@ def test_create_tournament_all_prompts_unique(client):
     # Check that all prompts are unique (case-insensitive)
     prompts_normalized = [p.lower().strip() for p in data["prompts"]]
     assert len(prompts_normalized) == len(set(prompts_normalized))  # No duplicates
+
+
+# Test prompt testing route
+@patch("tournament_routes.client.chat.completions.create")
+def test_test_prompt_success(mock_openai, client):
+    # Mock OpenAI response
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "Paris is the capital of France."
+    mock_response.usage.prompt_tokens = 10
+    mock_response.usage.completion_tokens = 8
+    mock_response.usage.total_tokens = 18
+    mock_openai.return_value = mock_response
+
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "prompt": "What is the capital of France?",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["prompt"] == "What is the capital of France?"
+    assert data["response"] == "Paris is the capital of France."
+    assert data["model"] == "gpt-3.5-turbo"  # Default model
+    assert data["max_tokens"] == 150  # Default max_tokens
+    assert data["temperature"] == 0.7  # Default temperature
+    assert "usage" in data
+    assert data["usage"]["total_tokens"] == 18
+
+
+@patch("tournament_routes.client.chat.completions.create")
+def test_test_prompt_with_custom_parameters(mock_openai, client):
+    # Mock OpenAI response
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "The capital of Spain is Madrid."
+    mock_response.usage.prompt_tokens = 12
+    mock_response.usage.completion_tokens = 10
+    mock_response.usage.total_tokens = 22
+    mock_openai.return_value = mock_response
+
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "prompt": "Tell me about Spain's capital city",
+            "model": "gpt-4",
+            "max_tokens": 200,
+            "temperature": 0.5,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["prompt"] == "Tell me about Spain's capital city"
+    assert data["response"] == "The capital of Spain is Madrid."
+    assert data["model"] == "gpt-4"
+    assert data["max_tokens"] == 200
+    assert data["temperature"] == 0.5
+
+
+def test_test_prompt_missing_prompt(client):
+    # Test POST /test-prompt with missing prompt - should return 400
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "model": "gpt-3.5-turbo",
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_test_prompt_empty_prompt(client):
+    # Test POST /test-prompt with empty prompt - should return 400
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "prompt": "",
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_test_prompt_invalid_model(client):
+    # Test POST /test-prompt with invalid model - should return 400
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "prompt": "What is the capital of Italy?",
+            "model": "invalid-model",
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_test_prompt_invalid_max_tokens(client):
+    # Test POST /test-prompt with invalid max_tokens - should return 400
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "prompt": "What is the capital of Germany?",
+            "max_tokens": 5000,  # Too high
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_test_prompt_invalid_temperature(client):
+    # Test POST /test-prompt with invalid temperature - should return 400
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "prompt": "What is the capital of Japan?",
+            "temperature": 3.0,  # Too high
+        },
+    )
+    assert response.status_code == 400
+
+
+@patch("tournament_routes.client.chat.completions.create")
+def test_test_prompt_openai_error(mock_openai, client):
+    # Mock OpenAI to raise an exception
+    mock_openai.side_effect = Exception("API Error")
+
+    response = client.post(
+        "/api/test-prompt",
+        json={
+            "prompt": "What is the capital of Brazil?",
+        },
+    )
+
+    assert response.status_code == 500

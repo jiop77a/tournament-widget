@@ -224,6 +224,70 @@ def get_all_prompts():
     )
 
 
+# Route to test a prompt with OpenAI
+@tournament_bp.route("/test-prompt", methods=["POST"])
+def test_prompt():
+    data = request.json
+
+    # Validate required fields
+    prompt_text = data.get("prompt")
+    if not prompt_text or not prompt_text.strip():
+        abort(400, description="Prompt is required and cannot be empty")
+
+    # Optional parameters with defaults
+    model = data.get("model", "gpt-3.5-turbo")
+    max_tokens = data.get("max_tokens", 150)
+    temperature = data.get("temperature", 0.7)
+
+    # Validate parameters
+    if not isinstance(max_tokens, int) or max_tokens <= 0 or max_tokens > 4000:
+        abort(400, description="max_tokens must be an integer between 1 and 4000")
+
+    if not isinstance(temperature, (int, float)) or temperature < 0 or temperature > 2:
+        abort(400, description="temperature must be a number between 0 and 2")
+
+    if model not in ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"]:
+        abort(
+            400, description="model must be one of: gpt-3.5-turbo, gpt-4, gpt-4-turbo"
+        )
+
+    try:
+        # Send prompt to OpenAI
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt_text,
+                }
+            ],
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+        # Extract the response
+        ai_response = response.choices[0].message.content.strip()
+
+        return jsonify(
+            {
+                "prompt": prompt_text,
+                "response": ai_response,
+                "model": model,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "usage": {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens,
+                },
+            }
+        )
+
+    except Exception as e:
+        print(f"Error testing prompt with OpenAI: {e}")
+        abort(500, description=f"Failed to test prompt: {str(e)}")
+
+
 def remove_duplicate_prompts(prompts):
     """Remove duplicate prompts while preserving order"""
     unique_prompts = []
