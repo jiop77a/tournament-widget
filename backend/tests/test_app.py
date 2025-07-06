@@ -213,3 +213,157 @@ def test_store_result_winner_not_found(client):
         "/api/result", json={"match_id": match.id, "winner_id": 99999}
     )
     assert response.status_code == 404
+
+
+# Total prompts validation tests
+def test_create_tournament_with_valid_total_prompts(client):
+    # Test POST /tournament with valid even total_prompts
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of Italy?",
+            "total_prompts": 4,
+            "custom_prompts": [
+                "Tell me Italy's capital",
+                "What city is Italy's capital?",
+            ],
+        },
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert len(data["prompts"]) == 4  # Should have exactly 4 prompts
+
+
+def test_create_tournament_with_odd_total_prompts_error(client):
+    # Test POST /tournament with odd total_prompts - should return 400
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of Germany?",
+            "total_prompts": 5,  # Odd number
+            "custom_prompts": [
+                "Tell me Germany's capital",
+                "What city is Germany's capital?",
+            ],
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_create_tournament_with_negative_total_prompts_error(client):
+    # Test POST /tournament with negative total_prompts - should return 400
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of Japan?",
+            "total_prompts": -4,  # Negative number
+            "custom_prompts": [
+                "Tell me Japan's capital",
+                "What city is Japan's capital?",
+            ],
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_create_tournament_with_zero_total_prompts_error(client):
+    # Test POST /tournament with zero total_prompts - should return 400
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of Brazil?",
+            "total_prompts": 0,  # Zero
+            "custom_prompts": [
+                "Tell me Brazil's capital",
+                "What city is Brazil's capital?",
+            ],
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_create_tournament_with_string_total_prompts_error(client):
+    # Test POST /tournament with string total_prompts - should return 400
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of Canada?",
+            "total_prompts": "invalid",  # String instead of int
+            "custom_prompts": [
+                "Tell me Canada's capital",
+                "What city is Canada's capital?",
+            ],
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_create_tournament_trim_excess_prompts(client):
+    # Test POST /tournament with more prompts than total_prompts - should trim
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of Australia?",
+            "total_prompts": 4,
+            "custom_prompts": [
+                "Tell me Australia's capital",
+                "What city is Australia's capital?",
+                "Which city is the capital of Australia?",
+                "What is Australia's capital city?",
+                "Can you name Australia's capital?",  # This should be trimmed
+                "I need to know Australia's capital",  # This should be trimmed
+            ],
+        },
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert len(data["prompts"]) == 4  # Should have exactly 4 prompts
+    # Should keep the first 4 prompts
+    assert "Tell me Australia's capital" in data["prompts"]
+    assert "Can you name Australia's capital?" not in data["prompts"]
+
+
+def test_create_tournament_removes_duplicate_prompts(client):
+    # Test POST /tournament with duplicate custom prompts - should remove duplicates
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of Mexico?",
+            "total_prompts": 4,
+            "custom_prompts": [
+                "Tell me Mexico's capital",
+                "What city is Mexico's capital?",
+                "Tell me Mexico's capital",  # Exact duplicate
+                "TELL ME MEXICO'S CAPITAL",  # Case-insensitive duplicate
+                "  Tell me Mexico's capital  ",  # Whitespace duplicate
+            ],
+        },
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert len(data["prompts"]) == 4  # Should have exactly 4 prompts
+    # Should have unique prompts (2 unique custom + 2 generated)
+    prompts_lower = [p.lower().strip() for p in data["prompts"]]
+    assert len(set(prompts_lower)) == 4  # All should be unique
+
+
+def test_create_tournament_all_prompts_unique(client):
+    # Test that all prompts in the final tournament are unique
+    response = client.post(
+        "/api/tournament",
+        json={
+            "input_question": "What is the capital of India?",
+            "total_prompts": 6,
+            "custom_prompts": [
+                "Tell me India's capital",
+                "What city is India's capital?",
+            ],
+        },
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert len(data["prompts"]) == 6
+
+    # Check that all prompts are unique (case-insensitive)
+    prompts_normalized = [p.lower().strip() for p in data["prompts"]]
+    assert len(prompts_normalized) == len(set(prompts_normalized))  # No duplicates

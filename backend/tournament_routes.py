@@ -11,6 +11,9 @@ tournament_bp = Blueprint("tournament", __name__)
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Constants
+DEFAULT_TOTAL_PROMPTS = 8
+
 
 # Route to create a tournament
 @tournament_bp.route("/tournament", methods=["POST"])
@@ -30,21 +33,52 @@ def create_tournament():
     # Get custom prompts or start with empty list
     prompts = data.get("custom_prompts", [])
 
-    # Ensure we have at least 8 prompts for the tournament
-    if len(prompts) < 8:
-        additional_prompts_needed = 8 - len(prompts)
+    # Remove duplicates from custom prompts first
+    prompts = remove_duplicate_prompts(prompts)
+
+    # Get total_prompts parameter, validate it's even, default to DEFAULT_TOTAL_PROMPTS
+    total_prompts = data.get("total_prompts", DEFAULT_TOTAL_PROMPTS)
+
+    # Validate total_prompts
+    if not isinstance(total_prompts, int):
+        abort(400, description="total_prompts must be an integer")
+    if total_prompts <= 0:
+        abort(400, description="total_prompts must be a positive number")
+    if total_prompts % 2 != 0:
+        abort(400, description="total_prompts must be an even number")
+
+    # Generate additional prompts if needed, ensuring uniqueness
+    max_attempts = 3  # Limit attempts to avoid infinite loops
+    attempt = 0
+
+    while len(prompts) < total_prompts and attempt < max_attempts:
+        additional_prompts_needed = total_prompts - len(prompts)
+        previous_count = len(prompts)
+
         try:
             ai_generated_prompts = generate_prompts_with_ai(
-                input_question_text, additional_prompts_needed
+                input_question_text, additional_prompts_needed, existing_prompts=prompts
             )
             prompts.extend(ai_generated_prompts)
         except Exception as e:
             # If AI generation fails, fall back to simple variations
             print(f"AI prompt generation failed: {e}")
             fallback_prompts = generate_fallback_prompts(
-                input_question_text, additional_prompts_needed
+                input_question_text, additional_prompts_needed, existing_prompts=prompts
             )
             prompts.extend(fallback_prompts)
+
+        # Remove duplicates while preserving order
+        prompts = remove_duplicate_prompts(prompts)
+
+        # If we didn't add any new unique prompts, increment attempt counter
+        if len(prompts) <= previous_count:
+            attempt += 1
+        else:
+            attempt = 0  # Reset if we made progress
+
+    # Ensure we have exactly the requested number of prompts
+    prompts = prompts[:total_prompts]
 
     # Add the prompts to the database
     for prompt_text in prompts:
@@ -190,7 +224,33 @@ def get_all_prompts():
     )
 
 
-def generate_prompts_with_ai(input_question, num_prompts_needed):
+def remove_duplicate_prompts(prompts):
+    """Remove duplicate prompts while preserving order"""
+    unique_prompts = []
+    seen = set()
+    for prompt in prompts:
+        normalized = prompt.lower().strip()
+        if normalized not in seen and normalized:  # Also skip empty prompts
+            unique_prompts.append(prompt)
+            seen.add(normalized)
+    return unique_prompts
+
+
+def _build_ai_prompt_content(input_question, num_prompts_needed, existing_prompts):
+    """Build the content for the AI prompt, including existing prompts to avoid"""
+    base_content = f"Generate {num_prompts_needed} different ways to ask this question: '{input_question}'. Each prompt should be unique and ask for the same information but with different phrasing, tone, or approach."
+
+    if existing_prompts:
+        existing_list = "\n".join(f"- {prompt}" for prompt in existing_prompts)
+        base_content += f"\n\nAVOID creating prompts similar to these existing ones:\n{existing_list}"
+
+    base_content += (
+        "\n\nReturn only the prompts, one per line, without numbering or bullet points."
+    )
+    return base_content
+
+
+def generate_prompts_with_ai(input_question, num_prompts_needed, existing_prompts=None):
     """Generate additional prompts using ChatGPT API"""
     try:
         response = client.chat.completions.create(
@@ -202,7 +262,9 @@ def generate_prompts_with_ai(input_question, num_prompts_needed):
                 },
                 {
                     "role": "user",
-                    "content": f"Generate {num_prompts_needed} different ways to ask this question: '{input_question}'. Each prompt should be unique and ask for the same information but with different phrasing, tone, or approach. Return only the prompts, one per line, without numbering or bullet points.",
+                    "content": _build_ai_prompt_content(
+                        input_question, num_prompts_needed, existing_prompts
+                    ),
                 },
             ],
             max_tokens=500,
@@ -223,7 +285,9 @@ def generate_prompts_with_ai(input_question, num_prompts_needed):
         raise e
 
 
-def generate_fallback_prompts(input_question, num_prompts_needed):
+def generate_fallback_prompts(
+    input_question, num_prompts_needed, existing_prompts=None
+):
     """Generate simple fallback prompts if AI generation fails"""
     fallback_templates = [
         f"Please tell me: {input_question}",
@@ -234,7 +298,20 @@ def generate_fallback_prompts(input_question, num_prompts_needed):
         f"Can you provide information about: {input_question}",
         f"I need to know: {input_question}",
         f"Please clarify: {input_question}",
+        f"Can you help me with: {input_question}",
+        f"I'm curious about: {input_question}",
+        f"Could you describe: {input_question}",
+        f"What can you tell me about: {input_question}",
     ]
+
+    # Filter out any that are similar to existing prompts
+    if existing_prompts:
+        existing_normalized = {prompt.lower().strip() for prompt in existing_prompts}
+        fallback_templates = [
+            template
+            for template in fallback_templates
+            if template.lower().strip() not in existing_normalized
+        ]
 
     # Return the needed number of fallback prompts
     return fallback_templates[:num_prompts_needed]
