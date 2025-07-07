@@ -269,32 +269,33 @@ When tournament is completed:
 
 ## Testing
 
-### Unit Tests
+### Safe Test Runner (Recommended)
 
-Run the comprehensive unit test suite:
+Use our safe test runner to prevent accidental testing against live servers:
 
 ```bash
-python -m pytest tests/ -v
+# Run safe tests (no live server dependencies)
+python run_tests.py safe
+
+# Run only unit tests (fastest)
+python run_tests.py unit
+
+# Run only integration tests
+python run_tests.py integration
+
+# Run all tests (includes potentially risky ones)
+python run_tests.py all
 ```
 
-### Integration Tests
-
-**Complete tournament flow:**
+### Traditional pytest
 
 ```bash
-python tests/test_tournament_flow.py
-```
+# Run all safe tests
+python -m pytest tests/test_app.py tests/test_integration_safe.py -v
 
-**Odd number tournaments:**
-
-```bash
-python tests/test_odd_tournament.py
-```
-
-**AI prompt generation:**
-
-```bash
-python tests/test_tournament_creation.py
+# Run by test category
+python -m pytest -m unit -v      # Unit tests only
+python -m pytest -m integration -v  # Integration tests only
 ```
 
 ### Live API Testing
@@ -302,7 +303,7 @@ python tests/test_tournament_creation.py
 Start the server:
 
 ```bash
-python app.py  # Runs on http://localhost:5001
+flask run  # Runs on http://localhost:5001
 ```
 
 ### Full Simulation

@@ -41,7 +41,3 @@ app.register_blueprint(tournament_bp, url_prefix="/api")
 @app.route("/")
 def home():
     return "Tournament Widget API is running!"
-
-
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)

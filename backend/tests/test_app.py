@@ -1,61 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from app import app, db
 from models import InputQuestion, Match, Prompt, Tournament
 
 
-@pytest.fixture
-def client():
-    # Create a temporary database for testing
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    app.config["TESTING"] = True
-
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-
-            # Create test data
-            input_question = InputQuestion(
-                question_text="What is the capital of France?"
-            )
-            db.session.add(input_question)
-            db.session.commit()
-
-            # Create some sample prompts
-            prompt1 = Prompt(
-                input_question_id=input_question.id,
-                prompt_text="Tell me about France's capital",
-            )
-            prompt2 = Prompt(
-                input_question_id=input_question.id,
-                prompt_text="What city is France's capital?",
-            )
-            db.session.add(prompt1)
-            db.session.add(prompt2)
-            db.session.commit()
-
-            tournament = Tournament(input_question_id=input_question.id)
-            db.session.add(tournament)
-            db.session.commit()
-
-            # Create a sample match
-            match = Match(
-                tournament_id=tournament.id,
-                prompt_1_id=prompt1.id,
-                prompt_2_id=prompt2.id,
-                round_number=1,
-            )
-            db.session.add(match)
-            db.session.commit()
-
-            yield client
-
-            # Clean up more carefully
-            db.session.remove()
-            db.drop_all()
-
-
+@pytest.mark.unit
 def test_create_tournament(client):
     # Test POST /tournament route
     response = client.post(
@@ -74,9 +23,10 @@ def test_create_tournament(client):
     assert data["input_question"] == "What is the capital of Spain?"
 
 
-def test_get_tournament(client):
+@pytest.mark.unit
+def test_get_tournament(client, sample_data):
     # Test GET /tournament/{id}/status route (updated API)
-    tournament = Tournament.query.first()
+    tournament = sample_data["tournament"]
     response = client.get(f"/api/tournament/{tournament.id}/status")
     assert response.status_code == 200
     data = response.get_json()
