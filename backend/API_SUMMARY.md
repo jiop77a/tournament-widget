@@ -282,19 +282,19 @@ python -m pytest tests/ -v
 **Complete tournament flow:**
 
 ```bash
-python test_tournament_flow.py
+python tests/test_tournament_flow.py
 ```
 
 **Odd number tournaments:**
 
 ```bash
-python test_odd_tournament.py
+python tests/test_odd_tournament.py
 ```
 
 **AI prompt generation:**
 
 ```bash
-python test_tournament_creation.py
+python tests/test_tournament_creation.py
 ```
 
 ### Live API Testing
@@ -310,7 +310,7 @@ python app.py  # Runs on http://localhost:5001
 Run the complete tournament simulation:
 
 ```bash
-python simulate_tournament.py
+python tests/simulate_tournament.py
 ```
 
 ### API Examples
@@ -318,13 +318,13 @@ python simulate_tournament.py
 **Test prompt endpoint:**
 
 ```bash
-python example_test_prompt.py
+python tests/example_test_prompt.py
 ```
 
 **API usage examples:**
 
 ```bash
-python example_usage.py
+python tests/example_usage.py
 ```
 
 ## Database Schema

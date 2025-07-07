@@ -8,7 +8,7 @@ import os
 import sys
 
 # Add the backend directory to the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app
 from database import db
@@ -19,8 +19,12 @@ def test_odd_tournament():
     """Test tournament with odd number of participants (3 prompts)"""
 
     with app.test_client() as client:
-        print("🧪 Testing Odd Number Tournament (3 prompts)")
-        print("=" * 60)
+        with app.app_context():
+            # Create database tables
+            db.create_all()
+
+            print("🧪 Testing Odd Number Tournament (3 prompts)")
+            print("=" * 60)
 
         # Create a tournament with 3 prompts (odd number)
         tournament_data = {
@@ -37,7 +41,9 @@ def test_odd_tournament():
         if response.status_code != 201:
             print(f"❌ Failed to create tournament: {response.status_code}")
             print(f"   Error: {response.get_json()}")
-            return False
+            assert (
+                False
+            ), f"Tournament creation failed with status {response.status_code}"
 
         tournament_id = response.get_json()["tournament_id"]
         print(f"✅ Tournament created: {tournament_id} with 3 prompts")
@@ -138,15 +144,17 @@ def test_odd_tournament():
                 f"   Completion: {final_status['progress']['completion_percentage']}%"
             )
 
-        return True
-
 
 def test_five_prompts():
     """Test tournament with 5 prompts"""
 
     with app.test_client() as client:
-        print("\n🧪 Testing 5-Prompt Tournament")
-        print("=" * 60)
+        with app.app_context():
+            # Create database tables
+            db.create_all()
+
+            print("\n🧪 Testing 5-Prompt Tournament")
+            print("=" * 60)
 
         # Create a tournament with 5 prompts
         tournament_data = {
@@ -176,7 +184,6 @@ def test_five_prompts():
         ), f"Expected 2 matches, got {bracket_result['total_matches']}"
 
         print("✅ 5-prompt tournament structure looks correct!")
-        return True
 
 
 if __name__ == "__main__":

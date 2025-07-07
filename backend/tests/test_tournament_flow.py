@@ -8,7 +8,7 @@ import os
 import sys
 
 # Add the backend directory to the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app
 from database import db
@@ -19,8 +19,12 @@ def test_tournament_flow():
     """Test the complete tournament flow using the Flask test client"""
 
     with app.test_client() as client:
-        print("🧪 Testing Tournament Flow")
-        print("=" * 50)
+        with app.app_context():
+            # Create database tables
+            db.create_all()
+
+            print("🧪 Testing Tournament Flow")
+            print("=" * 50)
 
         # Step 1: Create a tournament
         print("\n1️⃣ Creating tournament...")
@@ -138,15 +142,18 @@ def test_tournament_flow():
             print(f"   🏆 Winner: {final_status['winner']}")
 
         print("\n🎉 All tests passed!")
-        return True
 
 
 def test_complete_tournament():
     """Test a complete tournament from start to finish"""
 
     with app.test_client() as client:
-        print("\n🧪 Testing Complete Tournament")
-        print("=" * 50)
+        with app.app_context():
+            # Create database tables
+            db.create_all()
+
+            print("\n🧪 Testing Complete Tournament")
+            print("=" * 50)
 
         # Create a tournament with 4 prompts (2 rounds)
         tournament_data = {
@@ -208,7 +215,7 @@ def test_complete_tournament():
                         f"   Looking for: '{match['prompt_1']}' and '{match['prompt_2']}'"
                     )
                     print(f"   Available prompts: {[p['text'] for p in all_prompts]}")
-                    return False
+                    assert False, f"Could not find prompt IDs for match {match_id}"
 
                 # Choose first prompt as winner (deterministic for testing)
                 winner_id = prompt_1_id
@@ -227,7 +234,9 @@ def test_complete_tournament():
                 if response.status_code != 200:
                     print(f"❌ Failed to submit match result: {response.status_code}")
                     print(f"   Error: {response.get_json()}")
-                    return False
+                    assert (
+                        False
+                    ), f"Failed to submit match result: {response.status_code}"
 
                 result = response.get_json()
 
@@ -250,20 +259,24 @@ def test_complete_tournament():
                         f"   Completion: {final_status['progress']['completion_percentage']}%"
                     )
 
-                    return True
+                    return  # Tournament completed successfully
 
             round_num += 1
 
         print(f"❌ Tournament did not complete within {max_rounds} rounds")
-        return False
+        assert False, f"Tournament did not complete within {max_rounds} rounds"
 
 
 def test_error_cases():
     """Test error handling"""
 
     with app.test_client() as client:
-        print("\n🧪 Testing Error Cases")
-        print("=" * 50)
+        with app.app_context():
+            # Create database tables
+            db.create_all()
+
+            print("\n🧪 Testing Error Cases")
+            print("=" * 50)
 
         # Test starting bracket on non-existent tournament
         print("\n❌ Testing non-existent tournament...")

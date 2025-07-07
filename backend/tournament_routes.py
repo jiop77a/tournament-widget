@@ -242,7 +242,7 @@ def store_match_result(match_id):
         response_data["tournament_completed"] = True
         response_data["tournament_winner"] = winner_prompt.prompt_text
         # Update tournament status
-        tournament = Tournament.query.get(match.tournament_id)
+        tournament = db.session.get(Tournament, match.tournament_id)
         tournament.status = "completed"
         db.session.commit()
 
@@ -274,21 +274,45 @@ def _check_and_create_next_round(tournament_id, current_round):
     # Get winners from current round
     winners = [match.winner for match in completed_matches]
 
-    # To determine if tournament is complete, we need to count all remaining contestants
-    # This includes winners from this round PLUS any prompts that didn't participate in this round (byes)
-
     # Get all prompts that participated in this round
     participating_prompts = set()
     for match in current_round_matches:
         participating_prompts.add(match.prompt_1_id)
         participating_prompts.add(match.prompt_2_id)
 
-    # Get all prompts in the tournament
-    tournament = Tournament.query.get(tournament_id)
-    all_tournament_prompts = set(p.id for p in tournament.input_question.prompts)
+    tournament = db.session.get(Tournament, tournament_id)
 
-    # Find prompts that got byes this round (didn't participate)
-    bye_prompts = all_tournament_prompts - participating_prompts
+    # Determine active prompts for this round (prompts that could potentially participate)
+    def get_active_prompts_for_round(round_num):
+        """Get the set of prompts that are active (not eliminated) for a given round"""
+        if round_num == 1:
+            # Round 1: all tournament prompts are active
+            return set(p.id for p in tournament.input_question.prompts)
+        else:
+            # Later rounds: winners from previous round + byes from previous round
+            prev_matches = Match.query.filter_by(
+                tournament_id=tournament_id, round_number=round_num - 1
+            ).all()
+
+            # Get winners from previous round
+            active = set()
+            prev_participating = set()
+
+            for match in prev_matches:
+                prev_participating.add(match.prompt_1_id)
+                prev_participating.add(match.prompt_2_id)
+                if match.winner:
+                    active.add(match.winner.id)
+
+            # Get active prompts from the previous round and find byes
+            prev_active = get_active_prompts_for_round(round_num - 1)
+            prev_byes = prev_active - prev_participating
+            active.update(prev_byes)
+
+            return active
+
+    active_prompts = get_active_prompts_for_round(current_round)
+    bye_prompts = active_prompts - participating_prompts
 
     # Total remaining contestants = winners from this round + bye prompts
     total_remaining = len(winners) + len(bye_prompts)
@@ -307,7 +331,7 @@ def _check_and_create_next_round(tournament_id, current_round):
 
     # Add bye prompts (those that didn't participate in this round)
     for prompt_id in bye_prompts:
-        prompt = Prompt.query.get(prompt_id)
+        prompt = db.session.get(Prompt, prompt_id)
         advancing_prompts.append(prompt)
 
     # Create matches for pairs of advancing prompts
