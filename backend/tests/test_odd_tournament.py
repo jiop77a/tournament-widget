@@ -3,16 +3,8 @@
 Test script to verify odd number tournament handling
 """
 
-import json
-import os
-import sys
-
-# Add the backend directory to the path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from app import app
 from database import db
-from models import InputQuestion, Match, Prompt, Tournament
 
 
 def test_odd_tournament():

@@ -3,15 +3,9 @@ Test script to verify tournament creation with AI prompt generation
 """
 
 import json
-import os
-import sys
 from unittest.mock import MagicMock, patch
 
-# Add the backend directory to the path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from app import app, db
-from models import InputQuestion, Prompt, Tournament
 
 
 def test_tournament_creation_with_few_prompts():

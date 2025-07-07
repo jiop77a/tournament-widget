@@ -4,8 +4,6 @@ These tests verify end-to-end functionality without external dependencies
 """
 
 import pytest
-from database import db
-from models import InputQuestion, Match, Prompt, Tournament
 
 
 @pytest.mark.integration
