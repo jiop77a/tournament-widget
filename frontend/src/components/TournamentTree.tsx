@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Typography, Chip } from "@mui/material";
 import { MatchCard } from "./MatchCard";
 import { TournamentWinner } from "./TournamentWinner";
+import { ByeCard } from "./ByeCard";
 import type { Tournament, Match } from "../types";
 
 interface TournamentTreeProps {
@@ -124,6 +125,21 @@ export const TournamentTree: React.FC<TournamentTreeProps> = ({
                   )}
                 </Box>
               ))}
+
+              {/* Byes in this round */}
+              {tournament.byes &&
+                tournament.byes[roundNumber] &&
+                tournament.byes[roundNumber].length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    {tournament.byes[roundNumber].map((byePrompt, index) => (
+                      <ByeCard
+                        key={index}
+                        prompt={byePrompt}
+                        showConnectionLine={roundIndex < rounds.length - 1}
+                      />
+                    ))}
+                  </Box>
+                )}
             </Box>
           </Box>
         ))}

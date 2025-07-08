@@ -7,7 +7,14 @@ import tempfile
 
 import pytest
 from app import app, db
+from dotenv import load_dotenv
 from models import InputQuestion, Match, Prompt, Tournament
+
+# Load environment variables
+load_dotenv()
+
+# Get test port from environment
+TEST_PORT = int(os.getenv("FLASK_TEST_PORT", 5002))
 
 
 @pytest.fixture(scope="function")
@@ -26,7 +33,7 @@ def test_app():
             "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "WTF_CSRF_ENABLED": False,  # Disable CSRF for testing
-            "SERVER_NAME": "localhost:5002",  # Use different port for tests
+            "SERVER_NAME": f"localhost:{TEST_PORT}",  # Use test port from config
         }
     )
 
@@ -114,7 +121,7 @@ def prevent_live_server_tests():
     # Set environment variable to indicate we're in test mode
     os.environ["TESTING"] = "true"
     os.environ["FLASK_ENV"] = "testing"
-    os.environ["FLASK_RUN_PORT"] = "5002"  # Use test port
+    os.environ["FLASK_RUN_PORT"] = str(TEST_PORT)  # Use test port from config
 
     yield
 

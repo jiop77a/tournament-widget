@@ -26,13 +26,14 @@ export interface SubmitMatchResultResponse {
   round_completed: boolean;
   next_round?: number;
   next_round_matches?: Array<{ prompt_1: string; prompt_2: string }>;
+  bye_prompts?: string[];
   tournament_completed?: boolean;
   tournament_winner?: string;
 }
 
 export interface GetTournamentMatchesResponse {
   tournament_id: number;
-  matches: import('./tournament').Match[];
+  matches: import("./tournament").Match[];
   total_matches: number;
 }
 

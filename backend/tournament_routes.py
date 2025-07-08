@@ -128,6 +128,58 @@ def get_tournament_status(tournament_id):
         }
         matches_by_round[round_num].append(match_data)
 
+    # Calculate byes for each round
+    def get_active_prompts_for_round(round_num):
+        """Get the set of prompts that are active (not eliminated) for a given round"""
+        if round_num == 1:
+            # Round 1: all tournament prompts are active
+            return set(p.id for p in tournament.input_question.prompts)
+        else:
+            # Later rounds: winners from previous round + byes from previous round
+            prev_matches = Match.query.filter_by(
+                tournament_id=tournament_id, round_number=round_num - 1
+            ).all()
+
+            # Get winners from previous round
+            active = set()
+            prev_participating = set()
+
+            for match in prev_matches:
+                prev_participating.add(match.prompt_1_id)
+                prev_participating.add(match.prompt_2_id)
+                if match.winner:
+                    active.add(match.winner.id)
+
+            # Get active prompts from the previous round and find byes
+            prev_active = get_active_prompts_for_round(round_num - 1)
+            prev_byes = prev_active - prev_participating
+            active.update(prev_byes)
+
+            return active
+
+    byes_by_round = {}
+    for round_num in matches_by_round.keys():
+        # Get all prompts that participated in this round
+        participating_prompts = set()
+        for match_data in matches_by_round[round_num]:
+            # Find the actual match object to get prompt IDs
+            match = next(m for m in tournament.rounds if m.id == match_data["match_id"])
+            participating_prompts.add(match.prompt_1_id)
+            participating_prompts.add(match.prompt_2_id)
+
+        # Get active prompts for this round
+        active_prompts = get_active_prompts_for_round(round_num)
+        bye_prompt_ids = active_prompts - participating_prompts
+
+        # Convert bye prompt IDs to prompt text
+        bye_prompts = []
+        for prompt_id in bye_prompt_ids:
+            prompt = db.session.get(Prompt, prompt_id)
+            if prompt:
+                bye_prompts.append(prompt.prompt_text)
+
+        byes_by_round[round_num] = bye_prompts
+
     # Calculate tournament progress
     total_matches = len(tournament.rounds)
     completed_matches = len([m for m in tournament.rounds if m.status == "completed"])
@@ -168,6 +220,7 @@ def get_tournament_status(tournament_id):
             ),
         },
         "rounds": matches_by_round,
+        "byes": byes_by_round,
         "winner": winner,
     }
 
@@ -241,6 +294,11 @@ def store_match_result(match_id):
         response_data["next_round"] = next_round_info["next_round_number"]
         response_data["next_round_matches"] = next_round_info["matches_created"]
 
+        # Include bye information as array
+        bye_prompts = next_round_info["bye_prompts"]
+        if bye_prompts:
+            response_data["bye_prompts"] = bye_prompts
+
     if next_round_info["tournament_completed"]:
         response_data["tournament_completed"] = True
         response_data["tournament_winner"] = winner_prompt.prompt_text
@@ -269,6 +327,7 @@ def _check_and_create_next_round(tournament_id, current_round):
         "tournament_completed": False,
         "next_round_number": None,
         "matches_created": [],
+        "bye_prompts": [],
     }
 
     if not round_completed:
@@ -316,6 +375,15 @@ def _check_and_create_next_round(tournament_id, current_round):
 
     active_prompts = get_active_prompts_for_round(current_round)
     bye_prompts = active_prompts - participating_prompts
+
+    # Convert bye prompt IDs to prompt text for the response
+    bye_prompt_texts = []
+    for prompt_id in bye_prompts:
+        prompt = db.session.get(Prompt, prompt_id)
+        if prompt:
+            bye_prompt_texts.append(prompt.prompt_text)
+
+    result["bye_prompts"] = bye_prompt_texts
 
     # Total remaining contestants = winners from this round + bye prompts
     total_remaining = len(winners) + len(bye_prompts)

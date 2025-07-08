@@ -195,7 +195,7 @@ When the final match of a round is completed, the response includes:
 }
 ```
 
-**For odd number tournaments, bye winners are also reported:**
+**For odd number tournaments, bye prompts are also reported:**
 
 ```json
 {
@@ -205,7 +205,7 @@ When the final match of a round is completed, the response includes:
   "round_completed": true,
   "next_round_created": true,
   "next_round": 2,
-  "bye_winner": "Which pet do you prefer?",
+  "bye_prompts": ["Which pet do you prefer?"],
   "next_round_matches": [
     {
       "prompt_1": "What pet is the best?",
@@ -269,29 +269,26 @@ When tournament is completed:
 
 ## Testing
 
-### Safe Test Runner (Recommended)
+### Test Runner (Recommended)
 
-Use our safe test runner to prevent accidental testing against live servers:
+Use our test runner with proper isolation and safety checks:
 
 ```bash
-# Run safe tests (no live server dependencies)
-python run_tests.py safe
+# Run all tests (default - all tests are now safe)
+python run_tests.py all
 
 # Run only unit tests (fastest)
 python run_tests.py unit
 
 # Run only integration tests
 python run_tests.py integration
-
-# Run all tests (includes potentially risky ones)
-python run_tests.py all
 ```
 
 ### Traditional pytest
 
 ```bash
-# Run all safe tests
-python -m pytest tests/test_app.py tests/test_integration_safe.py -v
+# Run all tests directly with pytest
+python -m pytest tests/ -v
 
 # Run by test category
 python -m pytest -m unit -v      # Unit tests only

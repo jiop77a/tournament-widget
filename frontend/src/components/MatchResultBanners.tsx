@@ -89,6 +89,23 @@ export const MatchResultBanners: React.FC<MatchResultBannersProps> = ({
                   ))}
                 </Box>
               )}
+            {matchResult.bye_prompts && matchResult.bye_prompts.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Automatic advancement (byes):
+                </Typography>
+                {matchResult.bye_prompts.map((byePrompt, index) => (
+                  <Chip
+                    key={index}
+                    label={`${byePrompt} (bye)`}
+                    size="small"
+                    color="secondary"
+                    variant="outlined"
+                    sx={{ mr: 1, mt: 0.5 }}
+                  />
+                ))}
+              </Box>
+            )}
           </Alert>
         </Collapse>
       )}

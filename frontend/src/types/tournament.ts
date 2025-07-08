@@ -13,6 +13,7 @@ export interface Tournament {
     completion_percentage: number;
   };
   rounds: Record<string, Match[]>;
+  byes: Record<string, string[]>;
   winner: string | null;
 }
 

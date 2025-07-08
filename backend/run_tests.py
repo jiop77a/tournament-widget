@@ -9,11 +9,27 @@ import sys
 from pathlib import Path
 
 import psutil
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Port configuration from environment variables
+LIVE_PORT = int(os.getenv("FLASK_RUN_PORT", 5001))
+TEST_PORT = int(os.getenv("FLASK_TEST_PORT", 5002))
+
+# Test type constants
+TEST_TYPE_UNIT = "unit"
+TEST_TYPE_INTEGRATION = "integration"
+TEST_TYPE_ALL = "all"
+
+# Valid test types
+VALID_TEST_TYPES = [TEST_TYPE_UNIT, TEST_TYPE_INTEGRATION, TEST_TYPE_ALL]
 
 
 def check_for_live_server():
-    """Check if Flask server is running on ports 5001 or 5002"""
-    ports_to_check = [5001, 5002]
+    """Check if Flask server is running on configured ports"""
+    ports_to_check = [LIVE_PORT, TEST_PORT]
     servers_found = []
 
     try:
@@ -46,7 +62,7 @@ def check_for_live_server():
             # lsof not available or other error
             print("⚠️  Cannot check for live servers (permission denied)")
             print(
-                "   Please manually ensure no Flask servers are running on ports 5001-5002"
+                f"   Please manually ensure no Flask servers are running on ports {LIVE_PORT}-{TEST_PORT}"
             )
             return False, None
 
@@ -65,7 +81,7 @@ def kill_live_server(pid):
         return False
 
 
-def run_tests(test_type="all", verbose=False, stop_on_first_failure=False):
+def run_tests(test_type=TEST_TYPE_ALL, verbose=False, stop_on_first_failure=False):
     """Run tests with safety checks"""
 
     # Change to backend directory
@@ -77,16 +93,38 @@ def run_tests(test_type="all", verbose=False, stop_on_first_failure=False):
 
     # Check for live servers
     servers_running, servers_info = check_for_live_server()
+    test_port = TEST_PORT
+
     if servers_running:
         print("⚠️  WARNING: Live Flask server(s) detected:")
         for port, pid in servers_info:
-            print(f"   Port {port} (PID: {pid})")
+            print(f"   Live server: Port {port} (PID: {pid})")
 
-        response = (
-            input("Do you want to stop them before running tests? (y/N): ")
-            .strip()
-            .lower()
-        )
+        print(f"📋 Test configuration:")
+        print(f"   Tests will run on: Port {test_port}")
+        print(f"   Tests use isolated databases (no data conflicts)")
+
+        # Check if there's a port conflict
+        live_ports = [port for port, _ in servers_info]
+        has_conflict = test_port in live_ports
+
+        if has_conflict:
+            print(f"❌ PORT CONFLICT: Live server running on test port {test_port}!")
+            default_choice = "y"
+            prompt = "Do you want to stop the conflicting server? (Y/n): "
+        else:
+            print(
+                f"✅ No port conflict detected (live: {live_ports}, test: {test_port})"
+            )
+            default_choice = "n"
+            prompt = "Do you want to stop live servers anyway? (y/N): "
+
+        response = input(prompt).strip().lower()
+
+        # Use default if user just presses enter
+        if not response:
+            response = default_choice
+            print(f"   Using default: {response}")
 
         if response == "y":
             all_stopped = True
@@ -103,15 +141,16 @@ def run_tests(test_type="all", verbose=False, stop_on_first_failure=False):
                 )
                 return False
         else:
-            print("⚠️  Continuing with live server(s) running (not recommended)")
-            print(
-                "   Tests will use isolated test databases and port 5002, but be careful!"
-            )
+            if has_conflict:
+                print("⚠️  WARNING: Proceeding with port conflict - tests may fail!")
+            else:
+                print("✅ Continuing with live servers running (safe - no conflicts)")
+            print(f"   Tests will use isolated databases and port {test_port}")
 
     # Set test environment variables
     os.environ["TESTING"] = "true"
     os.environ["FLASK_ENV"] = "testing"
-    os.environ["FLASK_RUN_PORT"] = "5002"  # Use different port for tests
+    os.environ["FLASK_RUN_PORT"] = str(TEST_PORT)  # Use test port from config
 
     # Build pytest command
     cmd = ["python", "-m", "pytest"]
@@ -123,27 +162,18 @@ def run_tests(test_type="all", verbose=False, stop_on_first_failure=False):
         cmd.append("-x")
 
     # Add test selection based on type
-    if test_type == "unit":
+    if test_type == TEST_TYPE_UNIT:
         cmd.extend(["-m", "unit"])
         print("\n🔬 Running UNIT tests only...")
-    elif test_type == "integration":
+    elif test_type == TEST_TYPE_INTEGRATION:
         cmd.extend(["-m", "integration"])
         print("\n🔗 Running INTEGRATION tests only...")
-    elif test_type == "safe":
-        cmd.extend(
-            [
-                "tests/test_app.py",
-                "tests/test_integration_safe.py",
-                "tests/test_odd_tournament.py",
-                "tests/test_tournament_creation.py",
-            ]
-        )
-        print("\n🛡️  Running SAFE tests (no live server dependencies)...")
-    elif test_type == "all":
+    elif test_type == TEST_TYPE_ALL:
         cmd.append("tests/")
         print("\n🎯 Running ALL tests...")
     else:
         print(f"❌ Unknown test type: {test_type}")
+        print(f"   Available options: {', '.join(VALID_TEST_TYPES)}")
         return False
 
     # Add coverage if available
@@ -182,9 +212,9 @@ def main():
     parser.add_argument(
         "test_type",
         nargs="?",
-        default="safe",
-        choices=["unit", "integration", "safe", "all"],
-        help="Type of tests to run (default: safe)",
+        default=TEST_TYPE_ALL,
+        choices=VALID_TEST_TYPES,
+        help=f"Type of tests to run (default: {TEST_TYPE_ALL})",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument(
