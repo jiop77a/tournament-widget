@@ -121,6 +121,8 @@ def get_tournament_status(tournament_id):
             "match_id": match.id,
             "prompt_1": match.prompt_1.prompt_text,
             "prompt_2": match.prompt_2.prompt_text,
+            "prompt_1_id": match.prompt_1_id,
+            "prompt_2_id": match.prompt_2_id,
             "status": match.status,
             "winner": match.winner.prompt_text if match.winner else None,
         }
@@ -436,6 +438,8 @@ def get_tournament_matches(tournament_id):
             "round_number": match.round_number,
             "prompt_1": match.prompt_1.prompt_text,
             "prompt_2": match.prompt_2.prompt_text,
+            "prompt_1_id": match.prompt_1_id,
+            "prompt_2_id": match.prompt_2_id,
             "status": match.status,
             "winner": match.winner.prompt_text if match.winner else None,
         }

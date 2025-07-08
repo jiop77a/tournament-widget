@@ -19,6 +19,8 @@ export interface Match {
   match_id: number;
   prompt_1: string;
   prompt_2: string;
+  prompt_1_id: number;
+  prompt_2_id: number;
   status: string;
   winner: string | null;
   round_number?: number;

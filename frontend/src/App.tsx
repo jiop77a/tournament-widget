@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Container,
   Typography,
@@ -7,8 +6,7 @@ import {
   createTheme,
   CssBaseline,
 } from "@mui/material";
-import { TournamentCreationForm } from "./components/TournamentCreationForm";
-import type { CreateTournamentResponse } from "./types";
+import { TournamentNavigation } from "./components/TournamentNavigation";
 
 const theme = createTheme({
   palette: {
@@ -20,17 +18,10 @@ const theme = createTheme({
 });
 
 function App() {
-  const [createdTournament, setCreatedTournament] =
-    useState<CreateTournamentResponse | null>(null);
-
-  const handleTournamentCreated = (tournament: CreateTournamentResponse) => {
-    setCreatedTournament(tournament);
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="md">
+      <Container maxWidth="lg">
         <Box sx={{ my: 4 }}>
           <Typography
             variant="h2"
@@ -51,18 +42,7 @@ function App() {
             Create and manage prompt tournaments
           </Typography>
 
-          <TournamentCreationForm
-            onTournamentCreated={handleTournamentCreated}
-          />
-
-          {createdTournament && (
-            <Box sx={{ mt: 3, textAlign: "center" }}>
-              <Typography variant="h6" color="success.main">
-                Tournament #{createdTournament.tournament_id} created
-                successfully!
-              </Typography>
-            </Box>
-          )}
+          <TournamentNavigation />
         </Box>
       </Container>
     </ThemeProvider>

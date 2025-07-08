@@ -25,7 +25,7 @@ export const TournamentCreationForm: React.FC<TournamentCreationFormProps> = ({
 }) => {
   const [inputQuestion, setInputQuestion] = useState("");
   const [customPrompts, setCustomPrompts] = useState<string[]>([""]);
-  const [totalPrompts, setTotalPrompts] = useState<number>(8);
+  const [totalPrompts, setTotalPrompts] = useState<number | "">(8);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<CreateTournamentResponse | null>(null);
@@ -62,10 +62,14 @@ export const TournamentCreationForm: React.FC<TournamentCreationFormProps> = ({
         throw new Error("Input question is required");
       }
 
+      if (typeof totalPrompts !== "number" || totalPrompts < 2) {
+        throw new Error("Total prompts must be at least 2 for a tournament");
+      }
+
       const response = await apiService.createTournament({
         input_question: inputQuestion.trim(),
         custom_prompts: validPrompts,
-        total_prompts: totalPrompts,
+        total_prompts: totalPrompts as number,
       });
 
       setSuccess(response);
@@ -130,12 +134,29 @@ export const TournamentCreationForm: React.FC<TournamentCreationFormProps> = ({
             type="number"
             label="Total Prompts"
             value={totalPrompts}
-            onChange={(e) => setTotalPrompts(parseInt(e.target.value) || 8)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === "") {
+                setTotalPrompts("");
+              } else {
+                const parsed = parseInt(value);
+                if (!isNaN(parsed)) {
+                  setTotalPrompts(parsed);
+                }
+              }
+            }}
             margin="normal"
+            error={typeof totalPrompts !== "number" || totalPrompts < 2}
             slotProps={{
               htmlInput: { min: 2, max: 32 },
             }}
-            helperText="Total number of prompts in the tournament (AI will generate additional prompts if needed)"
+            helperText={
+              typeof totalPrompts !== "number"
+                ? "Please enter a number (minimum 2)"
+                : totalPrompts < 2
+                ? "Must be at least 2 prompts for a tournament"
+                : "Total number of prompts in the tournament (AI will generate additional prompts if needed)"
+            }
           />
 
           <Divider sx={{ my: 3 }} />
