@@ -8,22 +8,12 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
-import {
-  Add as CreateIcon,
-  Refresh as RefreshIcon,
-  PlayArrow as StartIcon,
-} from "@mui/icons-material";
+import { Add as CreateIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import { apiService } from "../services/api";
 import { TournamentCreationForm } from "./TournamentCreationForm";
 import { TournamentBracket } from "./TournamentBracket";
 import { MatchVoting } from "./MatchVoting";
-import type {
-  CreateTournamentResponse,
-  Tournament,
-  Match,
-  SubmitMatchResultResponse,
-  StartTournamentBracketResponse,
-} from "../types";
+import type { CreateTournamentResponse, Tournament, Match } from "../types";
 
 type ViewMode = "create" | "bracket" | "voting";
 
@@ -119,10 +109,7 @@ export const TournamentNavigation: React.FC<TournamentNavigationProps> = ({
     setError(null);
 
     try {
-      const response: StartTournamentBracketResponse =
-        await apiService.startTournamentBracket(
-          currentTournament.tournament_id
-        );
+      await apiService.startTournamentBracket(currentTournament.tournament_id);
 
       // Refresh tournament data to show the bracket
       await refreshTournament();
@@ -144,7 +131,7 @@ export const TournamentNavigation: React.FC<TournamentNavigationProps> = ({
     }
   };
 
-  const handleVoteSubmitted = async (result: SubmitMatchResultResponse) => {
+  const handleVoteSubmitted = async () => {
     // Refresh tournament data to reflect the new results
     await refreshTournament();
 

@@ -6,8 +6,6 @@ import {
   Typography,
   Chip,
   LinearProgress,
-  Grid,
-  Divider,
   Paper,
   Button,
 } from "@mui/material";
@@ -25,12 +23,193 @@ interface TournamentBracketProps {
   onStartBracket?: () => void;
 }
 
-interface MatchCardProps {
-  match: Match;
-  onClick?: () => void;
+// Tree-style bracket component
+interface TournamentTreeProps {
+  tournament: Tournament;
+  onMatchClick?: (match: Match) => void;
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
+const TournamentTree: React.FC<TournamentTreeProps> = ({
+  tournament,
+  onMatchClick,
+}) => {
+  const rounds = Object.keys(tournament.rounds)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  const maxRounds = rounds.length;
+
+  return (
+    <Box
+      sx={{
+        overflowX: "auto",
+        minHeight: "400px",
+        p: 2,
+        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+        borderRadius: 2,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          gap: 4,
+          minWidth: `${maxRounds * 300}px`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {rounds.map((roundNumber, roundIndex) => (
+          <Box
+            key={roundNumber}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+              minWidth: "280px",
+            }}
+          >
+            {/* Round Header */}
+            <Box sx={{ textAlign: "center", mb: 2 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: "bold",
+                  color: "primary.main",
+                  textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
+                }}
+              >
+                {roundNumber === maxRounds && tournament.winner
+                  ? "Final"
+                  : `Round ${roundNumber}`}
+                {roundNumber === tournament.current_round && (
+                  <Chip
+                    label="Current"
+                    color="primary"
+                    size="small"
+                    sx={{ ml: 1 }}
+                  />
+                )}
+              </Typography>
+            </Box>
+
+            {/* Matches in this round */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                alignItems: "center",
+              }}
+            >
+              {tournament.rounds[roundNumber].map((match) => (
+                <Box key={match.match_id} sx={{ position: "relative" }}>
+                  <TreeMatchCard
+                    match={match}
+                    onClick={
+                      onMatchClick ? () => onMatchClick(match) : undefined
+                    }
+                    isLast={roundIndex === rounds.length - 1}
+                  />
+
+                  {/* Connection line to next round */}
+                  {roundIndex < rounds.length - 1 && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        right: "-32px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: "32px",
+                        height: "2px",
+                        backgroundColor: match.winner
+                          ? "success.main"
+                          : "grey.300",
+                        zIndex: 1,
+                        "&::after": {
+                          content: '""',
+                          position: "absolute",
+                          right: "-6px",
+                          top: "-3px",
+                          width: 0,
+                          height: 0,
+                          borderLeft: "6px solid",
+                          borderLeftColor: match.winner
+                            ? "success.main"
+                            : "grey.300",
+                          borderTop: "4px solid transparent",
+                          borderBottom: "4px solid transparent",
+                        },
+                      }}
+                    />
+                  )}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ))}
+
+        {/* Winner Display */}
+        {tournament.winner && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              minWidth: "200px",
+            }}
+          >
+            <TrophyIcon sx={{ fontSize: 48, color: "gold", mb: 2 }} />
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: "bold",
+                color: "success.main",
+                textAlign: "center",
+                textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
+              }}
+            >
+              Champion!
+            </Typography>
+            <Paper
+              sx={{
+                p: 2,
+                mt: 2,
+                backgroundColor: "success.light",
+                border: "2px solid",
+                borderColor: "success.main",
+                borderRadius: 2,
+              }}
+            >
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: "bold",
+                  color: "success.contrastText",
+                  textAlign: "center",
+                }}
+              >
+                {tournament.winner}
+              </Typography>
+            </Paper>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+// Tree-style match card component
+interface TreeMatchCardProps {
+  match: Match;
+  onClick?: () => void;
+  isLast?: boolean;
+}
+
+const TreeMatchCard: React.FC<TreeMatchCardProps> = ({
+  match,
+  onClick,
+  isLast,
+}) => {
   const getStatusIcon = () => {
     switch (match.status) {
       case "completed":
@@ -42,94 +221,149 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
     }
   };
 
-  const getStatusColor = () => {
-    switch (match.status) {
-      case "completed":
-        return "success";
-      case "pending":
-        return "warning";
-      default:
-        return "default";
-    }
-  };
-
   return (
     <Paper
-      elevation={2}
+      elevation={match.status === "pending" ? 4 : 2}
       sx={{
         p: 2,
         cursor: onClick && match.status === "pending" ? "pointer" : "default",
         border: match.status === "pending" ? "2px solid" : "1px solid",
-        borderColor:
-          match.status === "pending" ? "primary.main" : "divider",
+        borderColor: match.status === "pending" ? "primary.main" : "divider",
+        backgroundColor:
+          match.status === "completed" ? "success.light" : "background.paper",
+        minWidth: "240px",
+        maxWidth: "240px",
         "&:hover":
           onClick && match.status === "pending"
             ? {
                 backgroundColor: "action.hover",
                 borderColor: "primary.dark",
+                transform: "translateY(-2px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               }
             : {},
-        transition: "all 0.2s ease-in-out",
+        transition: "all 0.3s ease-in-out",
+        position: "relative",
       }}
       onClick={onClick && match.status === "pending" ? onClick : undefined}
     >
-      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+      {/* Match header */}
+      <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
         {getStatusIcon()}
         <Typography variant="caption" sx={{ ml: 1, fontWeight: "bold" }}>
           Match #{match.match_id}
         </Typography>
-        <Chip
-          label={match.status}
-          size="small"
-          color={getStatusColor()}
-          sx={{ ml: "auto" }}
-        />
+        {isLast && (
+          <Typography
+            variant="caption"
+            sx={{ ml: "auto", fontWeight: "bold", color: "primary.main" }}
+          >
+            FINAL
+          </Typography>
+        )}
       </Box>
 
-      <Box sx={{ mb: 2 }}>
-        <Typography
-          variant="body2"
+      {/* Contestants */}
+      <Box sx={{ mb: 1 }}>
+        <Box
           sx={{
-            p: 1,
+            p: 1.5,
             backgroundColor:
-              match.winner === match.prompt_1 ? "success.light" : "grey.100",
+              match.winner === match.prompt_1 ? "success.main" : "grey.100",
             borderRadius: 1,
             mb: 1,
-            fontWeight: match.winner === match.prompt_1 ? "bold" : "normal",
-            color: match.winner === match.prompt_1 ? "success.contrastText" : "text.primary",
+            border: match.winner === match.prompt_1 ? "2px solid" : "1px solid",
+            borderColor:
+              match.winner === match.prompt_1 ? "success.dark" : "grey.300",
+            position: "relative",
           }}
         >
-          {match.prompt_1}
-        </Typography>
-        <Typography variant="body2" sx={{ textAlign: "center", my: 1 }}>
-          VS
-        </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: match.winner === match.prompt_1 ? "bold" : "normal",
+              color:
+                match.winner === match.prompt_1
+                  ? "success.contrastText"
+                  : "text.primary",
+              fontSize: "0.875rem",
+            }}
+          >
+            {match.prompt_1}
+          </Typography>
+          {match.winner === match.prompt_1 && (
+            <Box
+              sx={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+            >
+              <TrophyIcon sx={{ fontSize: 16, color: "gold" }} />
+            </Box>
+          )}
+        </Box>
+
         <Typography
           variant="body2"
           sx={{
-            p: 1,
-            backgroundColor:
-              match.winner === match.prompt_2 ? "success.light" : "grey.100",
-            borderRadius: 1,
-            fontWeight: match.winner === match.prompt_2 ? "bold" : "normal",
-            color: match.winner === match.prompt_2 ? "success.contrastText" : "text.primary",
+            textAlign: "center",
+            my: 1,
+            fontWeight: "bold",
+            color: "text.secondary",
           }}
         >
-          {match.prompt_2}
+          VS
         </Typography>
-      </Box>
 
-      {match.winner && (
-        <Box sx={{ textAlign: "center" }}>
-          <Typography variant="caption" color="success.main" fontWeight="bold">
-            Winner: {match.winner}
+        <Box
+          sx={{
+            p: 1.5,
+            backgroundColor:
+              match.winner === match.prompt_2 ? "success.main" : "grey.100",
+            borderRadius: 1,
+            border: match.winner === match.prompt_2 ? "2px solid" : "1px solid",
+            borderColor:
+              match.winner === match.prompt_2 ? "success.dark" : "grey.300",
+            position: "relative",
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: match.winner === match.prompt_2 ? "bold" : "normal",
+              color:
+                match.winner === match.prompt_2
+                  ? "success.contrastText"
+                  : "text.primary",
+              fontSize: "0.875rem",
+            }}
+          >
+            {match.prompt_2}
           </Typography>
+          {match.winner === match.prompt_2 && (
+            <Box
+              sx={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+            >
+              <TrophyIcon sx={{ fontSize: 16, color: "gold" }} />
+            </Box>
+          )}
         </Box>
-      )}
+      </Box>
 
       {match.status === "pending" && onClick && (
         <Box sx={{ textAlign: "center", mt: 1 }}>
-          <Typography variant="caption" color="primary.main">
+          <Typography
+            variant="caption"
+            color="primary.main"
+            sx={{ fontWeight: "bold" }}
+          >
             Click to vote
           </Typography>
         </Box>
@@ -144,7 +378,10 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
   onStartBracket,
 }) => {
   // Check if tournament needs to be started
-  if (tournament.status === "active" && Object.keys(tournament.rounds).length === 0) {
+  if (
+    tournament.status === "active" &&
+    Object.keys(tournament.rounds).length === 0
+  ) {
     return (
       <Card>
         <CardContent sx={{ textAlign: "center", py: 4 }}>
@@ -169,10 +406,6 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
     );
   }
 
-  const rounds = Object.keys(tournament.rounds)
-    .map(Number)
-    .sort((a, b) => a - b);
-
   return (
     <Box>
       {/* Tournament Header */}
@@ -192,23 +425,17 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
             )}
           </Box>
 
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="text.secondary">
-                Status: <strong>{tournament.status}</strong>
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="text.secondary">
-                Round: <strong>{tournament.current_round}</strong>
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="text.secondary">
-                Prompts: <strong>{tournament.total_prompts}</strong>
-              </Typography>
-            </Grid>
-          </Grid>
+          <Box sx={{ display: "flex", gap: 3, mb: 2, flexWrap: "wrap" }}>
+            <Typography variant="body2" color="text.secondary">
+              Status: <strong>{tournament.status}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Round: <strong>{tournament.current_round}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Prompts: <strong>{tournament.total_prompts}</strong>
+            </Typography>
+          </Box>
 
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -240,38 +467,12 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
         </CardContent>
       </Card>
 
-      {/* Rounds Display */}
-      {rounds.map((roundNumber) => (
-        <Card key={roundNumber} sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h5" gutterBottom>
-              Round {roundNumber}
-              {roundNumber === tournament.current_round && (
-                <Chip
-                  label="Current"
-                  color="primary"
-                  size="small"
-                  sx={{ ml: 2 }}
-                />
-              )}
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-
-            <Grid container spacing={2}>
-              {tournament.rounds[roundNumber].map((match) => (
-                <Grid item xs={12} md={6} lg={4} key={match.match_id}>
-                  <MatchCard
-                    match={match}
-                    onClick={
-                      onMatchClick ? () => onMatchClick(match) : undefined
-                    }
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </CardContent>
-        </Card>
-      ))}
+      {/* Tournament Tree Display */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ p: 0 }}>
+          <TournamentTree tournament={tournament} onMatchClick={onMatchClick} />
+        </CardContent>
+      </Card>
     </Box>
   );
 };
