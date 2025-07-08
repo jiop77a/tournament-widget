@@ -1,9 +1,8 @@
 import React from "react";
 import { Box, Card, CardContent } from "@mui/material";
-import { ShareTournament } from "./ShareTournament";
 import { TournamentHeader } from "./TournamentHeader";
 import { TournamentStartView } from "./TournamentStartView";
-import { TournamentTree } from "./TournamentTree"
+import { TournamentTree } from "./TournamentTree";
 import type { Tournament, Match } from "../types";
 
 interface TournamentBracketProps {
@@ -34,9 +33,6 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
     <Box>
       {/* Tournament Header */}
       <TournamentHeader tournament={tournament} />
-
-      {/* Share Tournament */}
-      <ShareTournament tournamentId={tournament.tournament_id} />
 
       {/* Tournament Tree Display */}
       <Card sx={{ mb: 3 }}>

@@ -1,7 +1,6 @@
 import React from "react";
 import { Box, Card, CardContent, Typography, Button } from "@mui/material";
 import { PlayArrow as PlayIcon } from "@mui/icons-material";
-import { ShareTournament } from "./ShareTournament";
 import { TournamentPromptsList } from "./TournamentPromptsList";
 import type { Tournament } from "../types";
 
@@ -49,14 +48,7 @@ export const TournamentStartView: React.FC<TournamentStartViewProps> = ({
       {/* Start Tournament Button */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box
-            sx={{
-              textAlign: "center",
-              pt: 2,
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
+          <Box sx={{ textAlign: "center", pt: 2 }}>
             <Button
               variant="contained"
               size="large"
@@ -76,9 +68,6 @@ export const TournamentStartView: React.FC<TournamentStartViewProps> = ({
           </Box>
         </CardContent>
       </Card>
-
-      {/* Share Tournament */}
-      <ShareTournament tournamentId={tournament.tournament_id} />
     </Box>
   );
 };

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Box, Button, Breadcrumbs, Typography, Link } from "@mui/material";
+import { Box, Breadcrumbs, Typography, Link } from "@mui/material";
 import {
   Home as HomeIcon,
   EmojiEvents as TournamentIcon,
@@ -78,17 +78,6 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           </Typography>
         )}
       </Breadcrumbs>
-
-      {location.pathname !== "/" && (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleHomeClick}
-          startIcon={<HomeIcon />}
-        >
-          Back to Home
-        </Button>
-      )}
     </Box>
   );
 };

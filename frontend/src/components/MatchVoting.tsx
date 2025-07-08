@@ -254,16 +254,6 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
           </Button>
         </Paper>
       </Box>
-
-      {/* Instructions */}
-      <Card sx={{ mt: 3 }}>
-        <CardContent>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
-            💡 Tip: Consider which prompt would generate better or more
-            interesting responses
-          </Typography>
-        </CardContent>
-      </Card>
     </Box>
   );
 };

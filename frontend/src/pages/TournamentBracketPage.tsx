@@ -10,6 +10,7 @@ import {
 import { Add as CreateIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { TournamentBracket } from "../components/TournamentBracket";
+import { ShareTournament } from "../components/ShareTournament";
 import { useTournament } from "../hooks/useTournament";
 import { apiService } from "../services/api";
 import type { Match } from "../types";
@@ -17,16 +18,11 @@ import type { Match } from "../types";
 export const TournamentBracketPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const tournamentId = id ? parseInt(id, 10) : undefined;
-  
-  const {
-    tournament,
-    loading,
-    error,
-    refreshTournament,
-    setError,
-  } = useTournament(tournamentId);
+
+  const { tournament, loading, error, refreshTournament, setError } =
+    useTournament(tournamentId);
 
   if (!tournamentId || isNaN(tournamentId)) {
     return (
@@ -42,7 +38,9 @@ export const TournamentBracketPage: React.FC = () => {
   const handleMatchClick = (match: Match) => {
     if (match.status === "pending" && tournament) {
       // Navigate to the match voting URL
-      navigate(`/tournament/${tournament.tournament_id}/match/${match.match_id}`);
+      navigate(
+        `/tournament/${tournament.tournament_id}/match/${match.match_id}`
+      );
     }
   };
 
@@ -112,6 +110,10 @@ export const TournamentBracketPage: React.FC = () => {
         >
           {loading ? "Refreshing..." : "Refresh"}
         </Button>
+
+        {tournament && (
+          <ShareTournament tournamentId={tournament.tournament_id} compact />
+        )}
       </Box>
 
       {error && (
