@@ -6,7 +6,8 @@ import {
   CssBaseline,
 } from "@mui/material";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { TournamentPage } from "./pages/TournamentPage";
+import { TournamentBracketPage } from "./pages/TournamentBracketPage";
+import { MatchVotingPage } from "./pages/MatchVotingPage";
 import { HomePage } from "./pages/HomePage";
 
 const theme = createTheme({
@@ -27,10 +28,13 @@ function App() {
           <Box sx={{ my: 4 }}>
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/tournament/:id" element={<TournamentPage />} />
+              <Route
+                path="/tournament/:id"
+                element={<TournamentBracketPage />}
+              />
               <Route
                 path="/tournament/:id/match/:matchId"
-                element={<TournamentPage />}
+                element={<MatchVotingPage />}
               />
             </Routes>
           </Box>

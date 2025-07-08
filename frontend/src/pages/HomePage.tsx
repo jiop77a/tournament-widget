@@ -1,9 +1,18 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
-import { TournamentNavigation } from "../components/TournamentNavigation";
+import { TournamentCreationForm } from "../components/TournamentCreationForm";
 import { NavigationHeader } from "../components/NavigationHeader";
+import type { CreateTournamentResponse } from "../types";
 
 export const HomePage: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleTournamentCreated = (response: CreateTournamentResponse) => {
+    // Navigate to the new tournament's bracket page
+    navigate(`/tournament/${response.tournament_id}`);
+  };
+
   return (
     <Box>
       <NavigationHeader />
@@ -22,7 +31,7 @@ export const HomePage: React.FC = () => {
         Create and manage prompt tournaments
       </Typography>
 
-      <TournamentNavigation />
+      <TournamentCreationForm onTournamentCreated={handleTournamentCreated} />
     </Box>
   );
 };
