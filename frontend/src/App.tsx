@@ -2,14 +2,13 @@ import { useState } from "react";
 import {
   Container,
   Typography,
-  Button,
   Box,
-  Card,
-  CardContent,
   ThemeProvider,
   createTheme,
   CssBaseline,
 } from "@mui/material";
+import { TournamentCreationForm } from "./components/TournamentCreationForm";
+import type { CreateTournamentResponse } from "./types";
 
 const theme = createTheme({
   palette: {
@@ -21,14 +20,24 @@ const theme = createTheme({
 });
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [createdTournament, setCreatedTournament] =
+    useState<CreateTournamentResponse | null>(null);
+
+  const handleTournamentCreated = (tournament: CreateTournamentResponse) => {
+    setCreatedTournament(tournament);
+  };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="sm">
-        <Box sx={{ my: 4, textAlign: "center" }}>
-          <Typography variant="h2" component="h1" gutterBottom>
+      <Container maxWidth="md">
+        <Box sx={{ my: 4 }}>
+          <Typography
+            variant="h2"
+            component="h1"
+            gutterBottom
+            textAlign="center"
+          >
             Tournament Widget
           </Typography>
           <Typography
@@ -36,25 +45,24 @@ function App() {
             component="h2"
             gutterBottom
             color="text.secondary"
+            textAlign="center"
+            sx={{ mb: 4 }}
           >
-            Vite + React + Material UI
+            Create and manage prompt tournaments
           </Typography>
 
-          <Card sx={{ mt: 4 }}>
-            <CardContent>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => setCount((count) => count + 1)}
-                sx={{ mb: 2 }}
-              >
-                Count is {count}
-              </Button>
-              <Typography variant="body1">
-                Edit <code>src/App.tsx</code> and save to test HMR
+          <TournamentCreationForm
+            onTournamentCreated={handleTournamentCreated}
+          />
+
+          {createdTournament && (
+            <Box sx={{ mt: 3, textAlign: "center" }}>
+              <Typography variant="h6" color="success.main">
+                Tournament #{createdTournament.tournament_id} created
+                successfully!
               </Typography>
-            </CardContent>
-          </Card>
+            </Box>
+          )}
         </Box>
       </Container>
     </ThemeProvider>
