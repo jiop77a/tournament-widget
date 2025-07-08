@@ -6,15 +6,12 @@ import {
   Typography,
   Button,
   Alert,
-  CircularProgress,
-  Paper,
 } from "@mui/material";
-import {
-  ThumbUp as VoteIcon,
-  ArrowBack as BackIcon,
-} from "@mui/icons-material";
+import { ArrowBack as BackIcon } from "@mui/icons-material";
 import { apiService } from "../services/api";
 import type { Match, SubmitMatchResultResponse } from "../types";
+import { VotingOption } from "./VotingOption";
+import { TestResultDialog } from "./TestResultDialog";
 
 interface MatchVotingProps {
   match: Match;
@@ -29,6 +26,20 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testingPrompt, setTestingPrompt] = useState<string | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    prompt: string;
+    response: string;
+    model: string;
+    usage: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    };
+  } | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   const handleVote = async (winnerId: number) => {
     setError(null);
@@ -45,6 +56,31 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTestPrompt = async (prompt: string) => {
+    setTestError(null);
+    setTestLoading(true);
+    setTestingPrompt(prompt);
+    setTestDialogOpen(true);
+
+    try {
+      const response = await apiService.testPrompt({ prompt });
+      setTestResult(response);
+    } catch (err) {
+      setTestError(
+        err instanceof Error ? err.message : "Failed to test prompt"
+      );
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const handleCloseTestDialog = () => {
+    setTestDialogOpen(false);
+    setTestResult(null);
+    setTestError(null);
+    setTestingPrompt(null);
   };
 
   return (
@@ -88,43 +124,14 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
         }}
       >
         {/* Option 1 */}
-        <Paper
-          elevation={3}
-          sx={{
-            flex: 1,
-            p: 3,
-            textAlign: "center",
-            cursor: loading ? "default" : "pointer",
-            border: "2px solid transparent",
-            "&:hover": loading
-              ? {}
-              : {
-                  borderColor: "primary.main",
-                  backgroundColor: "action.hover",
-                },
-            transition: "all 0.2s ease-in-out",
-          }}
-          onClick={loading ? undefined : () => handleVote(match.prompt_1_id)}
-        >
-          <Typography variant="h6" gutterBottom color="primary.main">
-            Option A
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3, minHeight: "3em" }}>
-            {match.prompt_1}
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={loading ? <CircularProgress size={20} /> : <VoteIcon />}
-            disabled={loading}
-            fullWidth
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!loading) handleVote(match.prompt_1_id);
-            }}
-          >
-            {loading ? "Submitting..." : "Vote for This"}
-          </Button>
-        </Paper>
+        <VotingOption
+          label="Option A"
+          prompt={match.prompt_1}
+          promptId={match.prompt_1_id}
+          loading={loading}
+          onVote={handleVote}
+          onTest={handleTestPrompt}
+        />
 
         {/* VS Divider */}
         <Box
@@ -142,44 +149,25 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
         </Box>
 
         {/* Option 2 */}
-        <Paper
-          elevation={3}
-          sx={{
-            flex: 1,
-            p: 3,
-            textAlign: "center",
-            cursor: loading ? "default" : "pointer",
-            border: "2px solid transparent",
-            "&:hover": loading
-              ? {}
-              : {
-                  borderColor: "primary.main",
-                  backgroundColor: "action.hover",
-                },
-            transition: "all 0.2s ease-in-out",
-          }}
-          onClick={loading ? undefined : () => handleVote(match.prompt_2_id)}
-        >
-          <Typography variant="h6" gutterBottom color="primary.main">
-            Option B
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3, minHeight: "3em" }}>
-            {match.prompt_2}
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={loading ? <CircularProgress size={20} /> : <VoteIcon />}
-            disabled={loading}
-            fullWidth
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!loading) handleVote(match.prompt_2_id);
-            }}
-          >
-            {loading ? "Submitting..." : "Vote for This"}
-          </Button>
-        </Paper>
+        <VotingOption
+          label="Option B"
+          prompt={match.prompt_2}
+          promptId={match.prompt_2_id}
+          loading={loading}
+          onVote={handleVote}
+          onTest={handleTestPrompt}
+        />
       </Box>
+
+      {/* Test Result Dialog */}
+      <TestResultDialog
+        open={testDialogOpen}
+        onClose={handleCloseTestDialog}
+        testingPrompt={testingPrompt}
+        loading={testLoading}
+        error={testError}
+        result={testResult}
+      />
     </Box>
   );
 };

@@ -102,6 +102,30 @@ class ApiService {
   async getAllPrompts(): Promise<Prompt[]> {
     return this.request("/prompts");
   }
+
+  // Test a prompt with AI
+  async testPrompt(data: {
+    prompt: string;
+    model?: string;
+    max_tokens?: number;
+    temperature?: number;
+  }): Promise<{
+    prompt: string;
+    response: string;
+    model: string;
+    max_tokens: number;
+    temperature: number;
+    usage: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    };
+  }> {
+    return this.request("/test-prompt", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 // Export the class for custom instantiation

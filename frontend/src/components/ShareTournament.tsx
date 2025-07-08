@@ -1,19 +1,19 @@
 import React, { useState } from "react";
-import { 
-  Box, 
-  Button, 
-  TextField, 
-  Typography, 
-  Snackbar, 
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Snackbar,
   Alert,
   Paper,
   IconButton,
-  Tooltip
+  Tooltip,
 } from "@mui/material";
-import { 
-  Share as ShareIcon, 
+import {
+  Share as ShareIcon,
   ContentCopy as CopyIcon,
-  Link as LinkIcon 
+  Link as LinkIcon,
 } from "@mui/icons-material";
 
 interface ShareTournamentProps {
@@ -21,9 +21,9 @@ interface ShareTournamentProps {
   compact?: boolean;
 }
 
-export const ShareTournament: React.FC<ShareTournamentProps> = ({ 
-  tournamentId, 
-  compact = false 
+export const ShareTournament: React.FC<ShareTournamentProps> = ({
+  tournamentId,
+  compact = false,
 }) => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -35,7 +35,7 @@ export const ShareTournament: React.FC<ShareTournamentProps> = ({
       await navigator.clipboard.writeText(tournamentUrl);
       setSnackbarMessage("Tournament URL copied to clipboard!");
       setShowSnackbar(true);
-    } catch (err) {
+    } catch {
       setSnackbarMessage("Failed to copy URL");
       setShowSnackbar(true);
     }
@@ -49,7 +49,7 @@ export const ShareTournament: React.FC<ShareTournamentProps> = ({
           text: "Check out this tournament!",
           url: tournamentUrl,
         });
-      } catch (err) {
+      } catch {
         // User cancelled sharing or sharing failed
         handleCopyUrl(); // Fallback to copying
       }
@@ -60,13 +60,13 @@ export const ShareTournament: React.FC<ShareTournamentProps> = ({
 
   if (compact) {
     return (
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
         <Tooltip title="Copy tournament link">
           <IconButton size="small" onClick={handleCopyUrl}>
             <LinkIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Share tournament">
           <IconButton size="small" onClick={handleShare}>
             <ShareIcon fontSize="small" />
@@ -77,7 +77,7 @@ export const ShareTournament: React.FC<ShareTournamentProps> = ({
           open={showSnackbar}
           autoHideDuration={3000}
           onClose={() => setShowSnackbar(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
           <Alert severity="success" onClose={() => setShowSnackbar(false)}>
             {snackbarMessage}
@@ -89,16 +89,20 @@ export const ShareTournament: React.FC<ShareTournamentProps> = ({
 
   return (
     <Paper sx={{ p: 3, mb: 3 }}>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+      >
         <ShareIcon />
         Share Tournament
       </Typography>
-      
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Share this tournament with others using the link below:
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
         <TextField
           fullWidth
           value={tournamentUrl}
@@ -108,17 +112,17 @@ export const ShareTournament: React.FC<ShareTournamentProps> = ({
             readOnly: true,
           }}
           sx={{
-            '& .MuiInputBase-input': {
-              fontSize: '0.875rem',
-            }
+            "& .MuiInputBase-input": {
+              fontSize: "0.875rem",
+            },
           }}
         />
-        
+
         <Button
           variant="outlined"
           onClick={handleCopyUrl}
           startIcon={<CopyIcon />}
-          sx={{ minWidth: 'auto', px: 2 }}
+          sx={{ minWidth: "auto", px: 2 }}
         >
           Copy
         </Button>
@@ -137,7 +141,7 @@ export const ShareTournament: React.FC<ShareTournamentProps> = ({
         open={showSnackbar}
         autoHideDuration={3000}
         onClose={() => setShowSnackbar(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert severity="success" onClose={() => setShowSnackbar(false)}>
           {snackbarMessage}
