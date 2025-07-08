@@ -1,5 +1,5 @@
-import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Button,
@@ -11,18 +11,35 @@ import { Add as CreateIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { TournamentBracket } from "../components/TournamentBracket";
 import { ShareTournament } from "../components/ShareTournament";
+import { MatchResultBanners } from "../components/MatchResultBanners";
 import { useTournament } from "../hooks/useTournament";
 import { apiService } from "../services/api";
 import type { Match } from "../types";
+import type { SubmitMatchResultResponse } from "../types/api";
 
 export const TournamentBracketPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const tournamentId = id ? parseInt(id, 10) : undefined;
 
   const { tournament, loading, error, refreshTournament, setError } =
     useTournament(tournamentId);
+
+  // State for match result banners
+  const [matchResult, setMatchResult] =
+    useState<SubmitMatchResultResponse | null>(null);
+
+  // Handle match result from navigation state
+  useEffect(() => {
+    if (location.state?.matchResult) {
+      setMatchResult(location.state.matchResult);
+
+      // Clear the navigation state to prevent showing banners on refresh
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   if (!tournamentId || isNaN(tournamentId)) {
     return (
@@ -81,6 +98,12 @@ export const TournamentBracketPage: React.FC = () => {
       <Typography variant="h2" component="h1" gutterBottom textAlign="center">
         Tournament #{tournamentId}
       </Typography>
+
+      {/* Match Result Banners */}
+      <MatchResultBanners
+        key={matchResult?.match_id}
+        matchResult={matchResult}
+      />
 
       {/* Navigation Header */}
       <Box

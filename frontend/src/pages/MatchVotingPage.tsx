@@ -1,32 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Box,
-  Alert,
-  CircularProgress,
-  Typography,
-} from "@mui/material";
+import { Box, Alert, CircularProgress, Typography } from "@mui/material";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { MatchVoting } from "../components/MatchVoting";
 import { useTournament } from "../hooks/useTournament";
 import type { Match } from "../types";
+import type { SubmitMatchResultResponse } from "../types/api";
 
 export const MatchVotingPage: React.FC = () => {
   const { id, matchId } = useParams<{ id: string; matchId: string }>();
   const navigate = useNavigate();
-  
+
   const tournamentId = id ? parseInt(id, 10) : undefined;
   const matchIdNum = matchId ? parseInt(matchId, 10) : undefined;
-  
+
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  
-  const {
-    tournament,
-    loading,
-    error,
-    refreshTournament,
-    setError,
-  } = useTournament(tournamentId);
+
+  const { tournament, loading, error, refreshTournament, setError } =
+    useTournament(tournamentId);
 
   // Handle match validation and selection
   useEffect(() => {
@@ -60,7 +51,12 @@ export const MatchVotingPage: React.FC = () => {
     }
   }, [matchIdNum, tournament, navigate, setError]);
 
-  if (!tournamentId || isNaN(tournamentId) || !matchIdNum || isNaN(matchIdNum)) {
+  if (
+    !tournamentId ||
+    isNaN(tournamentId) ||
+    !matchIdNum ||
+    isNaN(matchIdNum)
+  ) {
     return (
       <Box>
         <NavigationHeader />
@@ -71,10 +67,12 @@ export const MatchVotingPage: React.FC = () => {
     );
   }
 
-  const handleVoteSubmitted = async () => {
-    // Navigate back to tournament page
+  const handleVoteSubmitted = async (result: SubmitMatchResultResponse) => {
+    // Navigate back to tournament page with result data
     if (tournament) {
-      navigate(`/tournament/${tournament.tournament_id}`);
+      navigate(`/tournament/${tournament.tournament_id}`, {
+        state: { matchResult: result },
+      });
     }
 
     // Refresh tournament data to reflect the new results

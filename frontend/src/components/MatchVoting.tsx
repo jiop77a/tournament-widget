@@ -8,11 +8,9 @@ import {
   Alert,
   CircularProgress,
   Paper,
-  Chip,
 } from "@mui/material";
 import {
   ThumbUp as VoteIcon,
-  CheckCircle as CompleteIcon,
   ArrowBack as BackIcon,
 } from "@mui/icons-material";
 import { apiService } from "../services/api";
@@ -31,7 +29,6 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SubmitMatchResultResponse | null>(null);
 
   const handleVote = async (winnerId: number) => {
     setError(null);
@@ -42,7 +39,6 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
         match.match_id,
         winnerId
       );
-      setResult(response);
       onVoteSubmitted?.(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit vote");
@@ -50,76 +46,6 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
       setLoading(false);
     }
   };
-
-  // If voting is complete, show results
-  if (result) {
-    return (
-      <Card>
-        <CardContent>
-          <Box sx={{ textAlign: "center", py: 3 }}>
-            <CompleteIcon sx={{ fontSize: 48, color: "success.main", mb: 2 }} />
-            <Typography variant="h5" gutterBottom color="success.main">
-              Vote Submitted Successfully!
-            </Typography>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Winner: {result.winner}
-              </Typography>
-              <Chip
-                label={`Match #${result.match_id}`}
-                color="primary"
-                sx={{ mb: 2 }}
-              />
-            </Box>
-
-            {result.round_completed && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                  🎉 Round completed!
-                  {result.next_round &&
-                    ` Round ${result.next_round} has been created.`}
-                </Typography>
-              </Alert>
-            )}
-
-            {result.tournament_completed && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                <Typography variant="body1" fontWeight="bold">
-                  🏆 Tournament Complete!
-                  <br />
-                  Champion: {result.tournament_winner}
-                </Typography>
-              </Alert>
-            )}
-
-            {result.next_round_matches &&
-              result.next_round_matches.length > 0 && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Next round matches created:
-                  </Typography>
-                  {result.next_round_matches.map((nextMatch, index) => (
-                    <Typography key={index} variant="caption" display="block">
-                      {nextMatch.prompt_1} vs {nextMatch.prompt_2}
-                    </Typography>
-                  ))}
-                </Box>
-              )}
-
-            <Button
-              variant="outlined"
-              startIcon={<BackIcon />}
-              onClick={onBack}
-              sx={{ mt: 2 }}
-            >
-              Back to Tournament
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Box>
