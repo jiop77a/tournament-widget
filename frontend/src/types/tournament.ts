@@ -6,6 +6,7 @@ export interface Tournament {
   status: string;
   current_round: number;
   total_prompts: number;
+  prompts: string[];
   progress: {
     total_matches: number;
     completed_matches: number;

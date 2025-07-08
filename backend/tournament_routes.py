@@ -159,6 +159,7 @@ def get_tournament_status(tournament_id):
         "status": tournament.status,
         "current_round": current_round,
         "total_prompts": len(tournament.input_question.prompts),
+        "prompts": [prompt.prompt_text for prompt in tournament.input_question.prompts],
         "progress": {
             "total_matches": total_matches,
             "completed_matches": completed_matches,

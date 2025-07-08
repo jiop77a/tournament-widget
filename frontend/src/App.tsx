@@ -1,12 +1,13 @@
 import {
   Container,
-  Typography,
   Box,
   ThemeProvider,
   createTheme,
   CssBaseline,
 } from "@mui/material";
-import { TournamentNavigation } from "./components/TournamentNavigation";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { TournamentPage } from "./pages/TournamentPage";
+import { HomePage } from "./pages/HomePage";
 
 const theme = createTheme({
   palette: {
@@ -21,30 +22,20 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="lg">
-        <Box sx={{ my: 4 }}>
-          <Typography
-            variant="h2"
-            component="h1"
-            gutterBottom
-            textAlign="center"
-          >
-            Tournament Widget
-          </Typography>
-          <Typography
-            variant="h5"
-            component="h2"
-            gutterBottom
-            color="text.secondary"
-            textAlign="center"
-            sx={{ mb: 4 }}
-          >
-            Create and manage prompt tournaments
-          </Typography>
-
-          <TournamentNavigation />
-        </Box>
-      </Container>
+      <Router>
+        <Container maxWidth="lg">
+          <Box sx={{ my: 4 }}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/tournament/:id" element={<TournamentPage />} />
+              <Route
+                path="/tournament/:id/match/:matchId"
+                element={<TournamentPage />}
+              />
+            </Routes>
+          </Box>
+        </Container>
+      </Router>
     </ThemeProvider>
   );
 }

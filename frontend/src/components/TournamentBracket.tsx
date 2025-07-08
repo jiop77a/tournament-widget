@@ -9,6 +9,7 @@ import {
   Paper,
   Button,
 } from "@mui/material";
+import { ShareTournament } from "./ShareTournament";
 import {
   EmojiEvents as TrophyIcon,
   PlayArrow as PlayIcon,
@@ -383,26 +384,142 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
     Object.keys(tournament.rounds).length === 0
   ) {
     return (
-      <Card>
-        <CardContent sx={{ textAlign: "center", py: 4 }}>
-          <PlayIcon sx={{ fontSize: 48, color: "primary.main", mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
-            Ready to Start Tournament
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Tournament "{tournament.input_question}" is ready with{" "}
-            {tournament.total_prompts} prompts.
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<PlayIcon />}
-            onClick={onStartBracket}
-          >
-            Start Tournament Bracket
-          </Button>
-        </CardContent>
-      </Card>
+      <Box>
+        {/* Tournament Header */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
+                {tournament.input_question}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 3, mb: 2, flexWrap: "wrap" }}>
+              <Typography variant="body2" color="text.secondary">
+                Status: <strong>Ready to Start</strong>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Prompts: <strong>{tournament.total_prompts}</strong>
+              </Typography>
+            </Box>
+
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Tournament created successfully! Review the prompts below and
+                start the bracket when ready.
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Tournament Prompts Display */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
+              📝 Tournament Prompts
+              <Chip
+                label={`${tournament.total_prompts} prompts`}
+                size="small"
+                color="primary"
+              />
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              These prompts will compete in the tournament bracket:
+            </Typography>
+
+            {/* Tournament Prompts Grid */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              {tournament.prompts && tournament.prompts.length > 0 ? (
+                tournament.prompts.map((prompt, index) => (
+                  <Paper
+                    key={index}
+                    sx={{
+                      p: 2,
+                      backgroundColor: "background.paper",
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 2,
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        borderColor: "primary.main",
+                        boxShadow: 1,
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}
+                    >
+                      <Chip
+                        label={`#${index + 1}`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        sx={{ flexShrink: 0, mt: 0.5 }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{ flexGrow: 1, lineHeight: 1.5 }}
+                      >
+                        {prompt}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                ))
+              ) : (
+                <Paper
+                  sx={{ p: 3, backgroundColor: "grey.50", textAlign: "center" }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    Loading tournament prompts...
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+
+            {/* Start Tournament Button */}
+            <Box
+              sx={{
+                textAlign: "center",
+                pt: 2,
+                borderTop: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<PlayIcon />}
+                onClick={onStartBracket}
+                sx={{ minWidth: 200 }}
+              >
+                Start Tournament Bracket
+              </Button>
+              <Typography
+                variant="caption"
+                display="block"
+                sx={{ mt: 1, color: "text.secondary" }}
+              >
+                This will create the first round matches and begin the
+                tournament
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Share Tournament */}
+        <ShareTournament tournamentId={tournament.tournament_id} />
+      </Box>
     );
   }
 
@@ -466,6 +583,9 @@ export const TournamentBracket: React.FC<TournamentBracketProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Share Tournament */}
+      <ShareTournament tournamentId={tournament.tournament_id} />
 
       {/* Tournament Tree Display */}
       <Card sx={{ mb: 3 }}>
