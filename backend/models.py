@@ -24,7 +24,6 @@ class Prompt(db.Model):
         db.Integer, db.ForeignKey("input_questions.id"), nullable=False
     )
     prompt_text = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.String(50), default="pending")
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     prompt_metadata = db.relationship("PromptMetaData", backref="prompt", lazy=True)
