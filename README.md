@@ -57,6 +57,8 @@ npm install
 npm run dev
 ```
 
+> **📖 For detailed frontend development guide, see [`frontend/README.md`](frontend/README.md)**
+
 ### Access the Application
 
 - **Frontend**: http://localhost:5173
@@ -67,6 +69,8 @@ npm run dev
 
 ### Running Tests
 
+**Backend Tests:**
+
 ```bash
 # Backend tests (recommended - includes safety checks)
 cd backend
@@ -75,6 +79,15 @@ python run_tests.py all
 # Or run specific test types
 python run_tests.py unit        # Unit tests only
 python run_tests.py integration # Integration tests only
+```
+
+**Frontend Tests:**
+
+```bash
+# Frontend tests
+cd frontend
+npm run test:run        # Run all tests
+npm run test:coverage   # Run with coverage report
 ```
 
 ### Database Management
@@ -121,14 +134,16 @@ tournament-widget/
 
 - **API Documentation**: `backend/API_SUMMARY.md`
 - **Testing Guide**: `backend/TESTING.md`
-- **Frontend**: See `frontend/` directory
+- **Frontend Guide**: `frontend/README.md`
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests: `python run_tests.py all`
+4. Run tests:
+   - Backend: `cd backend && python run_tests.py all`
+   - Frontend: `cd frontend && npm run test:run`
 5. Submit a pull request
 
 ## License

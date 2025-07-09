@@ -8,6 +8,23 @@ export default defineConfig({
   optimizeDeps: {
     include: ["@emotion/styled"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate vendor chunks for better caching
+          react: ["react", "react-dom"],
+          router: ["react-router-dom"],
+          mui: [
+            "@mui/material",
+            "@mui/icons-material",
+            "@emotion/react",
+            "@emotion/styled",
+          ],
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",
