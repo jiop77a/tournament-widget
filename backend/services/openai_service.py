@@ -7,7 +7,12 @@ class OpenAIService:
     """Service for handling OpenAI API interactions"""
 
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+
+    def is_available(self):
+        """Check if OpenAI service is available (API key is configured)"""
+        return self.api_key is not None and self.client is not None
 
     def test_prompt(
         self, prompt_text, model="gpt-3.5-turbo", max_tokens=150, temperature=0.7
@@ -25,8 +30,14 @@ class OpenAIService:
             dict: Response data including AI response and usage statistics
 
         Raises:
-            Exception: If OpenAI API call fails
+            Exception: If OpenAI API call fails or service is not available
         """
+        # Check if OpenAI service is available
+        if not self.is_available():
+            raise Exception(
+                "OpenAI API key not configured. Please set OPENAI_API_KEY environment variable to use this feature."
+            )
+
         # Validate parameters
         if not prompt_text or not prompt_text.strip():
             raise ValueError("Prompt is required and cannot be empty")
@@ -93,8 +104,14 @@ class OpenAIService:
             list: List of generated prompt strings
 
         Raises:
-            Exception: If OpenAI API call fails
+            Exception: If OpenAI API call fails or service is not available
         """
+        # Check if OpenAI service is available
+        if not self.is_available():
+            raise Exception(
+                "OpenAI API key not configured. Cannot generate AI prompts."
+            )
+
         try:
             prompt_content = self._build_ai_prompt_content(
                 input_question, num_prompts_needed, existing_prompts

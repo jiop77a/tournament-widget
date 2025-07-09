@@ -18,6 +18,7 @@ interface VotingOptionProps {
   loading: boolean;
   onVote: (promptId: number) => void;
   onTest: (prompt: string) => void;
+  showTestButton?: boolean;
 }
 
 export const VotingOption: React.FC<VotingOptionProps> = ({
@@ -27,6 +28,7 @@ export const VotingOption: React.FC<VotingOptionProps> = ({
   loading,
   onVote,
   onTest,
+  showTestButton = true,
 }) => {
   return (
     <Paper
@@ -66,18 +68,20 @@ export const VotingOption: React.FC<VotingOptionProps> = ({
         >
           {loading ? "Submitting..." : "Vote for This"}
         </Button>
-        <Button
-          variant="outlined"
-          startIcon={<TestIcon />}
-          disabled={loading}
-          fullWidth
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!loading) onTest(prompt);
-          }}
-        >
-          Test with AI
-        </Button>
+        {showTestButton && (
+          <Button
+            variant="outlined"
+            startIcon={<TestIcon />}
+            disabled={loading}
+            fullWidth
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!loading) onTest(prompt);
+            }}
+          >
+            Test with AI
+          </Button>
+        )}
       </Box>
     </Paper>
   );

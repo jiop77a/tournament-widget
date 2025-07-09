@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -29,6 +29,22 @@ export const TournamentCreationForm: React.FC<TournamentCreationFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<CreateTournamentResponse | null>(null);
+  const [openAIAvailable, setOpenAIAvailable] = useState<boolean | null>(null);
+
+  // Check OpenAI availability on component mount
+  useEffect(() => {
+    const checkOpenAIStatus = async () => {
+      try {
+        const status = await apiService.getOpenAIStatus();
+        setOpenAIAvailable(status.available);
+      } catch (err) {
+        console.error("Failed to check OpenAI status:", err);
+        setOpenAIAvailable(false);
+      }
+    };
+
+    checkOpenAIStatus();
+  }, []);
 
   const handleAddPrompt = () => {
     setCustomPrompts([...customPrompts, ""]);
@@ -64,6 +80,13 @@ export const TournamentCreationForm: React.FC<TournamentCreationFormProps> = ({
 
       if (typeof totalPrompts !== "number" || totalPrompts < 2) {
         throw new Error("Total prompts must be at least 2 for a tournament");
+      }
+
+      // Check if we have enough prompts when OpenAI is not available
+      if (openAIAvailable === false && validPrompts.length < totalPrompts) {
+        throw new Error(
+          `Not enough prompts provided. You provided ${validPrompts.length} prompts but need ${totalPrompts}. Either provide more prompts or set up an OpenAI API key for automatic prompt generation.`
+        );
       }
 
       const response = await apiService.createTournament({
@@ -102,6 +125,14 @@ export const TournamentCreationForm: React.FC<TournamentCreationFormProps> = ({
         <Typography variant="h5" component="h2" gutterBottom>
           Create New Tournament
         </Typography>
+
+        {openAIAvailable === false && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <strong>AI Prompt Generation Unavailable:</strong> OpenAI API key
+            not configured. You'll need to provide all prompts manually or set
+            up an OpenAI API key to enable automatic prompt generation.
+          </Alert>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

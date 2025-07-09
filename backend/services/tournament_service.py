@@ -49,6 +49,15 @@ class TournamentService:
         if total_prompts < 2:
             abort(400, description="total_prompts must be at least 2 for a tournament")
 
+        # Check if we have enough prompts when AI generation is not available
+        from services.openai_service import openai_service
+
+        if len(prompts) < total_prompts and not openai_service.is_available():
+            abort(
+                400,
+                description=f"Not enough prompts provided. You provided {len(prompts)} prompts but need {total_prompts}. Either provide more prompts or set up an OpenAI API key for automatic prompt generation.",
+            )
+
         # Generate additional prompts if needed, ensuring uniqueness
         max_attempts = 3  # Limit attempts to avoid infinite loops
         attempt = 0

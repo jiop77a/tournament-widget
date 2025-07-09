@@ -25,6 +25,9 @@ def test_app():
     Create a test Flask application with isolated database
     This ensures each test gets a fresh database
     """
+    # Set up test OpenAI API key for tests that need it
+    os.environ["OPENAI_API_KEY"] = "test-key-for-testing"
+
     # Create a completely separate Flask app instance for testing
     app = Flask(__name__)
 
@@ -68,11 +71,73 @@ def test_app():
 
 
 @pytest.fixture(scope="function")
+def test_app_no_openai():
+    """
+    Create a test Flask application without OpenAI API key
+    This tests the fallback behavior when OpenAI is not available
+    """
+    # Remove OpenAI API key for this test
+    original_key = os.environ.get("OPENAI_API_KEY")
+    if "OPENAI_API_KEY" in os.environ:
+        del os.environ["OPENAI_API_KEY"]
+
+    # Create a completely separate Flask app instance for testing
+    app = Flask(__name__)
+
+    # Create a temporary database file
+    db_fd, db_path = tempfile.mkstemp(suffix=".db")
+
+    # Configure app for testing
+    app.config.update(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+            "WTF_CSRF_ENABLED": False,  # Disable CSRF for testing
+            "SERVER_NAME": f"localhost:{TEST_PORT}",  # Use test port from config
+        }
+    )
+
+    # Initialize database with this test app
+    db.init_app(app)
+    CORS(app)  # Enable CORS for test app
+
+    # Import and register the blueprint
+    from tournament_routes import tournament_bp
+
+    app.register_blueprint(tournament_bp, url_prefix="/api")
+
+    with app.app_context():
+        db.create_all()
+        yield app
+
+        # Proper cleanup to avoid ResourceWarnings
+        db.session.remove()
+        db.drop_all()
+
+    # Cleanup
+    os.close(db_fd)
+    os.unlink(db_path)
+
+    # Restore original API key
+    if original_key:
+        os.environ["OPENAI_API_KEY"] = original_key
+
+
+@pytest.fixture(scope="function")
 def client(test_app):
     """
     Create a test client using the test app
     """
     return test_app.test_client()
+
+
+@pytest.fixture(scope="function")
+def client_no_openai(test_app_no_openai):
+    """
+    Create a test client for the Flask application without OpenAI
+    """
+    return test_app_no_openai.test_client()
 
 
 @pytest.fixture(scope="function")

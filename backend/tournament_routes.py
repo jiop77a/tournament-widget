@@ -96,6 +96,15 @@ def get_all_prompts():
     )
 
 
+# Route to check if OpenAI is available
+@tournament_bp.route("/openai-status", methods=["GET"])
+@handle_api_errors
+def openai_status():
+    from services.openai_service import openai_service
+
+    return jsonify({"available": openai_service.is_available()})
+
+
 # Route to test a prompt with OpenAI
 @tournament_bp.route("/test-prompt", methods=["POST"])
 @handle_api_errors

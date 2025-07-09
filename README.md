@@ -16,7 +16,7 @@ A web application for creating and managing prompt tournaments with AI-generated
 
 - Python 3.8+
 - Node.js 16+ (for frontend)
-- OpenAI API key (for AI prompt generation)
+- OpenAI API key (optional - for AI prompt generation and testing)
 
 ### Backend Setup
 
@@ -31,9 +31,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment variables
+# Set up environment variables (optional)
 # Create .env file in project root with:
-# OPENAI_API_KEY=your_openai_api_key_here
+# OPENAI_API_KEY=your_openai_api_key_here  # Optional - enables AI features
 # FLASK_RUN_PORT=5001
 # FLASK_TEST_PORT=5002
 
@@ -64,6 +64,25 @@ npm run dev
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:5001
 - **API Documentation**: See `backend/API_SUMMARY.md`
+
+## Usage Modes
+
+The tournament widget supports two usage modes:
+
+### With OpenAI API Key (Full Features)
+
+- **AI Prompt Generation**: Automatically generates additional prompts when you provide fewer than needed
+- **Prompt Testing**: Test prompts with AI to see sample responses
+- **Flexible Tournament Creation**: Create tournaments with any number of prompts (minimum 2)
+
+### Without OpenAI API Key (Manual Mode)
+
+- **Manual Prompt Entry**: Provide all prompts manually for your tournament
+- **Tournament Creation**: Must provide the exact number of prompts needed for the tournament
+- **Core Tournament Features**: Full bracket management, voting, and progression tracking
+- **No AI Dependencies**: Works completely offline for prompt management
+
+The application automatically detects whether an OpenAI API key is configured and adjusts the interface accordingly.
 
 ## Development
 

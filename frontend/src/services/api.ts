@@ -103,6 +103,11 @@ class ApiService {
     return this.request("/prompts");
   }
 
+  // Check if OpenAI is available
+  async getOpenAIStatus(): Promise<{ available: boolean }> {
+    return this.request("/openai-status");
+  }
+
   // Test a prompt with AI
   async testPrompt(data: {
     prompt: string;

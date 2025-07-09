@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -40,6 +40,22 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
     };
   } | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
+  const [openAIAvailable, setOpenAIAvailable] = useState<boolean>(true); // Default to true to avoid hiding buttons initially
+
+  // Check OpenAI availability on component mount
+  useEffect(() => {
+    const checkOpenAIStatus = async () => {
+      try {
+        const status = await apiService.getOpenAIStatus();
+        setOpenAIAvailable(status.available);
+      } catch (err) {
+        console.error("Failed to check OpenAI status:", err);
+        setOpenAIAvailable(false);
+      }
+    };
+
+    checkOpenAIStatus();
+  }, []);
 
   const handleVote = async (winnerId: number) => {
     setError(null);
@@ -131,6 +147,7 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
           loading={loading}
           onVote={handleVote}
           onTest={handleTestPrompt}
+          showTestButton={openAIAvailable}
         />
 
         {/* VS Divider */}
@@ -156,6 +173,7 @@ export const MatchVoting: React.FC<MatchVotingProps> = ({
           loading={loading}
           onVote={handleVote}
           onTest={handleTestPrompt}
+          showTestButton={openAIAvailable}
         />
       </Box>
 

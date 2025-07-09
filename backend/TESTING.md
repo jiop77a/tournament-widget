@@ -29,7 +29,15 @@ Tests are categorized using pytest markers:
 - `@pytest.mark.integration` - Integration tests using test client
 - `@pytest.mark.live_server` - Tests requiring live server (use with caution)
 
-### 3. Safe Test Runner
+### 3. OpenAI API Testing
+
+The test suite includes specialized fixtures for testing both modes:
+
+- `test_app` - Tests with OpenAI API key configured (full features)
+- `test_app_no_openai` - Tests without OpenAI API key (manual mode)
+- Automatic environment variable management and restoration
+
+### 4. Safe Test Runner
 
 The `run_tests.py` script provides:
 
@@ -74,7 +82,30 @@ pytest -m unit -v
 
 # Run only integration tests
 pytest -m integration -v
+
+# Run no-OpenAI tests specifically
+pytest tests/test_no_openai.py -v
 ```
+
+### Testing Without OpenAI API Key
+
+The `test_no_openai.py` file specifically tests the widget's functionality when no OpenAI API key is configured:
+
+```bash
+# Run all no-OpenAI tests
+pytest tests/test_no_openai.py -v
+
+# Test specific no-OpenAI functionality
+pytest tests/test_no_openai.py::test_create_tournament_insufficient_prompts_no_openai -v
+```
+
+These tests verify:
+
+- Tournament creation with sufficient manual prompts
+- Proper error handling when insufficient prompts are provided
+- OpenAI status endpoint returns correct availability
+- Prompt testing fails gracefully without API key
+- Duplicate prompt removal works without AI features
 
 ## Test File Organization
 
@@ -84,6 +115,7 @@ tests/
 ├── test_app.py                 # Unit tests for core functionality
 ├── test_error_handling.py      # Error handling and validation tests
 ├── test_integration_safe.py    # Safe integration tests
+├── test_no_openai.py           # Tests for functionality without OpenAI API key
 ├── test_odd_tournament.py      # Specific feature tests (odd number tournaments)
 ├── test_tournament_creation.py # AI generation tests
 ├── example_test_prompt.py      # Example: Testing prompt endpoint
