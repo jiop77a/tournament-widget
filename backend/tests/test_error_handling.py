@@ -5,23 +5,9 @@ Test error handling consistency across API routes
 import json
 
 import pytest
-from app import app
-from database import db
 
 
-@pytest.fixture
-def client():
-    """Create a test client"""
-    app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-            yield client
-            db.drop_all()
-
-
+@pytest.mark.unit
 class TestErrorHandling:
     """Test consistent error handling across API routes"""
 

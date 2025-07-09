@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
 """
 Example script demonstrating how to use the test-prompt route
 """
 
 import json
 import os
+import sys
 
 from app import app
 

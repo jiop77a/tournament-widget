@@ -1,17 +1,17 @@
 # Testing Strategy - Tournament Widget
 
-This document outlines our testing strategy to prevent accidental testing against live servers and ensure proper test isolation.
+This document describes the testing approach for the Tournament Widget, including test isolation, safety features, and execution methods.
 
-## Problem We're Solving
+## Testing Approach
 
-Previously, tests could accidentally run against a live Flask server, causing:
+The testing strategy uses isolated test databases and safety checks to prevent interference with development servers:
 
-- Data contamination between tests
-- Unpredictable test results
-- Potential data loss in development databases
-- False test failures due to existing data
+- Data isolation between tests
+- Predictable test results
+- Protection of development databases
+- Consistent test outcomes
 
-## Our Solution
+## Test Architecture
 
 ### 1. Test Isolation with Fixtures
 
@@ -38,16 +38,16 @@ The `run_tests.py` script provides:
 - Environment variable management (including test port 5002)
 - Test type selection
 
-## How to Run Tests Safely
+## Running Tests
 
 ### Quick Start (Recommended)
 
 ```bash
-# Run safe tests (no live server dependencies)
-python run_tests.py safe
+# Run all tests with safety checks
+python run_tests.py all
 
 # Run with verbose output
-python run_tests.py safe -v
+python run_tests.py all -v
 ```
 
 ### Test Categories
@@ -82,11 +82,30 @@ pytest -m integration -v
 tests/
 ├── conftest.py                 # Shared fixtures and configuration
 ├── test_app.py                 # Unit tests for core functionality
+├── test_error_handling.py      # Error handling and validation tests
 ├── test_integration_safe.py    # Safe integration tests
-├── test_odd_tournament.py      # Specific feature tests
+├── test_odd_tournament.py      # Specific feature tests (odd number tournaments)
 ├── test_tournament_creation.py # AI generation tests
-└── test_tournament_flow.py     # Legacy integration tests (use with caution)
+├── example_test_prompt.py      # Example: Testing prompt endpoint
+├── example_usage.py            # Example: Tournament creation workflow
+└── simulate_tournament.py      # Example: Full tournament simulation
 ```
+
+### Test vs Example Files
+
+**Test files** (`test_*.py`):
+
+- Run automatically with `pytest` or `python run_tests.py`
+- Use isolated test databases
+- Include assertions and validation
+- Part of the test suite
+
+**Example files** (`example_*.py`, `simulate_*.py`):
+
+- Run manually to demonstrate API usage
+- Connect to live server (require `flask run`)
+- Show real-world usage patterns
+- Not part of automated test suite
 
 ## Safety Features
 
@@ -138,7 +157,7 @@ def test_with_live_server():
 
 ### ✅ DO
 
-- Use `python run_tests.py safe` for regular testing
+- Use `python run_tests.py all` for regular testing
 - Write new tests using the `client` fixture from `conftest.py`
 - Mark tests appropriately (`@pytest.mark.unit`, `@pytest.mark.integration`)
 - Stop live servers before running tests
@@ -158,8 +177,8 @@ For CI/CD pipelines, use:
 # Install dependencies
 pip install pytest pytest-cov psutil
 
-# Run safe tests with coverage
-python run_tests.py safe -v
+# Run all tests with coverage
+python run_tests.py all -v
 ```
 
 ## Troubleshooting
@@ -167,7 +186,7 @@ python run_tests.py safe -v
 ### "Tests are failing randomly"
 
 - Check if Flask server is running: `lsof -i :5001`
-- Use the test runner: `python run_tests.py safe`
+- Use the test runner: `python run_tests.py all`
 
 ### "Database errors in tests"
 

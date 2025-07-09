@@ -1,5 +1,44 @@
 # Tournament Widget API - End-to-End Functionality
 
+## **Quick Setup**
+
+### Database Setup
+
+The project uses Flask-Migrate for database management. To set up the database:
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables (copy from .env.example if available)
+# Make sure to set OPENAI_API_KEY for AI prompt generation
+
+# Apply database migrations (creates tables)
+flask db upgrade
+
+# Start the server
+flask run
+```
+
+### Development Database Commands
+
+```bash
+# Check current migration status
+flask db current
+
+# Create a new migration after model changes
+flask db migrate -m "Description of changes"
+
+# Apply pending migrations
+flask db upgrade
+
+# Downgrade to previous migration (if needed)
+flask db downgrade
+```
+
 ## **API Endpoints**
 
 #### Tournament Management
@@ -327,9 +366,18 @@ python tests/example_usage.py
 
 ## Database Schema
 
-The existing database schema supports all new functionality:
+The database schema consists of five main tables:
 
-- `tournaments` - Tournament metadata
-- `matches` - Individual match data with round numbers
-- `prompts` - Prompt text and metadata
+- `input_questions` - Base questions for tournaments
+- `tournaments` - Tournament metadata and status
+- `prompts` - Prompt variations linked to input questions
+- `matches` - Individual match data with round numbers and results
 - `prompt_metadata` - Win/loss statistics per tournament
+
+### Table Relationships
+
+- `tournaments` → `input_questions` (many-to-one)
+- `prompts` → `input_questions` (many-to-one)
+- `matches` → `tournaments` (many-to-one)
+- `matches` → `prompts` (references prompt_1, prompt_2, winner)
+- `prompt_metadata` → `prompts` and `tournaments` (many-to-one each)

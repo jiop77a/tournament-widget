@@ -3,16 +3,22 @@
 Example script showing how to create tournaments with AI-generated prompts
 """
 
-import json
+import os
 
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 def create_tournament_example():
     """Example of creating a tournament with fewer than 8 prompts"""
 
-    # API endpoint
-    url = "http://localhost:5001/api/tournament"
+    # Get API base URL from environment variables
+    port = os.getenv("FLASK_RUN_PORT", "5001")
+    base_url = f"http://localhost:{port}/api"
+    url = f"{base_url}/tournament"
 
     # Example 1: Tournament with only 3 custom prompts
     # The system will automatically generate 5 more prompts using ChatGPT API
@@ -55,7 +61,10 @@ def create_tournament_example():
 def create_tournament_with_enough_prompts():
     """Example of creating a tournament with 8 or more prompts (no AI generation needed)"""
 
-    url = "http://localhost:5001/api/tournament"
+    # Get API base URL from environment variables
+    port = os.getenv("FLASK_RUN_PORT", "5001")
+    base_url = f"http://localhost:{port}/api"
+    url = f"{base_url}/tournament"
 
     tournament_data = {
         "input_question": "What is the largest planet in our solar system?",

@@ -9,16 +9,21 @@ This script demonstrates the complete tournament workflow:
 4. Retrieve tournament results at each stage
 """
 
-import json
+import os
 import random
 import sys
 import time
 from typing import Any, Dict, List
 
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configuration
-BASE_URL = "http://localhost:5000/api"
+port = os.getenv("FLASK_RUN_PORT", "5001")
+BASE_URL = f"http://localhost:{port}/api"
 DELAY_BETWEEN_MATCHES = 1  # seconds
 
 
