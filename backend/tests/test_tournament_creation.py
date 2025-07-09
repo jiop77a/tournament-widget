@@ -22,7 +22,7 @@ Which city serves as France's capital?
 I'd like to know France's capital city"""
 
     with patch(
-        "tournament_routes.client.chat.completions.create",
+        "services.openai_service.openai_service.client.chat.completions.create",
         return_value=mock_response,
     ):
         # Test data with only 2 custom prompts (should trigger AI generation)
@@ -62,7 +62,7 @@ def test_tournament_creation_fallback(client):
 
     # Mock the OpenAI API to raise an exception
     with patch(
-        "tournament_routes.client.chat.completions.create",
+        "services.openai_service.openai_service.client.chat.completions.create",
         side_effect=Exception("API Error"),
     ):
         # Test data with only 2 prompts (should trigger fallback)

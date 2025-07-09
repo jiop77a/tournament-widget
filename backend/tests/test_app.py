@@ -316,7 +316,7 @@ def test_create_tournament_all_prompts_unique(client):
 
 
 # Test prompt testing route
-@patch("tournament_routes.client.chat.completions.create")
+@patch("services.openai_service.openai_service.client.chat.completions.create")
 def test_test_prompt_success(mock_openai, client):
     # Mock OpenAI response
     mock_response = MagicMock()
@@ -344,7 +344,7 @@ def test_test_prompt_success(mock_openai, client):
     assert data["usage"]["total_tokens"] == 18
 
 
-@patch("tournament_routes.client.chat.completions.create")
+@patch("services.openai_service.openai_service.client.chat.completions.create")
 def test_test_prompt_with_custom_parameters(mock_openai, client):
     # Mock OpenAI response
     mock_response = MagicMock()
@@ -431,7 +431,7 @@ def test_test_prompt_invalid_temperature(client):
     assert response.status_code == 400
 
 
-@patch("tournament_routes.client.chat.completions.create")
+@patch("services.openai_service.openai_service.client.chat.completions.create")
 def test_test_prompt_openai_error(mock_openai, client):
     # Mock OpenAI to raise an exception
     mock_openai.side_effect = Exception("API Error")
