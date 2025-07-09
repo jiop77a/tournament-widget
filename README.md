@@ -130,22 +130,47 @@ tournament-widget/
 └── README.md               # This file
 ```
 
+## Future Improvements
+
+### Core Features
+
+- **User Authentication**: Add user accounts and tournament ownership
+- **Tournament Templates**: Pre-built tournament types and configurations
+- **Advanced Bracket Types**: Support for double elimination, round-robin, and Swiss tournaments
+- **Seeding System**: Allow manual or automatic seeding of participants
+- **Tournament Scheduling**: Time-based tournament progression and match scheduling
+
+### User Experience
+
+- **Mobile Responsiveness**: Optimize interface for mobile devices
+- **Real-time Updates**: WebSocket integration for live tournament updates
+- **Tournament History**: View and replay past tournaments
+- **Export Functionality**: Export tournament results to PDF or CSV
+- **Social Features**: Tournament sharing and spectator mode
+
+### AI and Content
+
+- **Custom AI Models**: Support for different AI providers and models
+- **Prompt Categories**: Organize prompts by themes or difficulty levels
+- **AI Judging**: Optional AI-powered match evaluation
+- **Content Moderation**: Automated filtering of inappropriate content
+
+### Performance and Scalability
+
+- **Database Optimization**: Implement caching and query optimization
+- **API Rate Limiting**: Protect against abuse and ensure fair usage
+- **Horizontal Scaling**: Support for multiple server instances
+- **Background Jobs**: Async processing for AI generation and heavy operations
+
+### Analytics and Insights
+
+- **Tournament Analytics**: Detailed statistics and performance metrics
+- **Prompt Performance**: Track which prompts perform best across tournaments
+- **User Engagement**: Analytics on voting patterns and participation
+- **A/B Testing**: Framework for testing new features
+
 ## Documentation
 
 - **API Documentation**: `backend/API_SUMMARY.md`
 - **Testing Guide**: `backend/TESTING.md`
 - **Frontend Guide**: `frontend/README.md`
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests:
-   - Backend: `cd backend && python run_tests.py all`
-   - Frontend: `cd frontend && npm run test:run`
-5. Submit a pull request
-
-## License
-
-[Add your license information here]
