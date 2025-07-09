@@ -405,6 +405,9 @@ def _check_and_create_next_round(tournament_id, current_round):
         prompt = db.session.get(Prompt, prompt_id)
         advancing_prompts.append(prompt)
 
+    # Shuffle advancing prompts to ensure fair bye distribution across rounds
+    random.shuffle(advancing_prompts)
+
     # Create matches for pairs of advancing prompts
     for i in range(0, len(advancing_prompts), 2):
         if i + 1 < len(advancing_prompts):  # Ensure we have a pair

@@ -37,7 +37,9 @@ def test_odd_tournament(client):
 
     # Should have 1 match (2 prompts paired, 1 gets bye)
     print(f"   Expected: 1 match for 3 prompts, Got: {bracket_result['total_matches']}")
-    assert bracket_result["total_matches"] == 1, f"Expected 1 match, got {bracket_result['total_matches']}"
+    assert (
+        bracket_result["total_matches"] == 1
+    ), f"Expected 1 match, got {bracket_result['total_matches']}"
 
     # Get tournament status
     response = client.get(f"/api/tournament/{tournament_id}/status")
@@ -51,7 +53,9 @@ def test_odd_tournament(client):
     # Get the first match
     first_match = status["rounds"]["1"][0]
     match_id = first_match["match_id"]
-    prompt_1_id = next(p["id"] for p in all_prompts if p["text"] == first_match["prompt_1"])
+    prompt_1_id = next(
+        p["id"] for p in all_prompts if p["text"] == first_match["prompt_1"]
+    )
 
     print(f"\n⚔️ Round 1 Match:")
     print(f"   '{first_match['prompt_1']}' vs '{first_match['prompt_2']}'")
@@ -59,7 +63,9 @@ def test_odd_tournament(client):
     print(f"   (Third prompt gets automatic bye to final)")
 
     # Submit result
-    response = client.post(f"/api/match/{match_id}/result", json={"winner_id": prompt_1_id})
+    response = client.post(
+        f"/api/match/{match_id}/result", json={"winner_id": prompt_1_id}
+    )
     result = response.get_json()
 
     print(f"✅ Match result: {result.get('message')}")
@@ -85,17 +91,23 @@ def test_odd_tournament(client):
 
         # Simulate final match
         match_id = final_match["match_id"]
-        prompt_1_id = next(p["id"] for p in all_prompts if p["text"] == final_match["prompt_1"])
+        prompt_1_id = next(
+            p["id"] for p in all_prompts if p["text"] == final_match["prompt_1"]
+        )
 
         print(f"\n⚔️ Final Match:")
         print(f"   '{final_match['prompt_1']}' vs '{final_match['prompt_2']}'")
         print(f"   🏆 Winner: '{final_match['prompt_1']}'")
 
-        response = client.post(f"/api/match/{match_id}/result", json={"winner_id": prompt_1_id})
+        response = client.post(
+            f"/api/match/{match_id}/result", json={"winner_id": prompt_1_id}
+        )
         result = response.get_json()
 
         if result.get("tournament_completed"):
-            print(f"   🎉 TOURNAMENT COMPLETED! Champion: '{result['tournament_winner']}'")
+            print(
+                f"   🎉 TOURNAMENT COMPLETED! Champion: '{result['tournament_winner']}'"
+            )
 
     print("✅ 3-prompt tournament structure looks correct!")
 
@@ -129,6 +141,73 @@ def test_five_prompts(client):
     print(f"✅ Bracket started with {bracket_result['total_matches']} matches")
 
     # Should have 2 matches (4 prompts paired, 1 gets bye)
-    assert bracket_result["total_matches"] == 2, f"Expected 2 matches, got {bracket_result['total_matches']}"
+    assert (
+        bracket_result["total_matches"] == 2
+    ), f"Expected 2 matches, got {bracket_result['total_matches']}"
 
     print("✅ 5-prompt tournament structure looks correct!")
+
+
+def test_bye_randomness(client):
+    """Test that byes are distributed fairly across multiple tournaments"""
+
+    print("\n🧪 Testing Bye Randomness (multiple 5-prompt tournaments)")
+    print("=" * 60)
+
+    bye_counts = {}  # Track which prompts get byes across tournaments
+    num_tournaments = 10  # Run multiple tournaments to test randomness
+
+    for tournament_num in range(num_tournaments):
+        # Create a tournament with 5 prompts (same prompts each time for consistency)
+        tournament_data = {
+            "input_question": f"Test question {tournament_num}",
+            "custom_prompts": [
+                "Prompt Alpha",
+                "Prompt Beta",
+                "Prompt Gamma",
+                "Prompt Delta",
+                "Prompt Epsilon",
+            ],
+            "total_prompts": 5,
+        }
+
+        response = client.post("/api/tournament", json=tournament_data)
+        tournament_id = response.get_json()["tournament_id"]
+
+        # Start bracket
+        client.post(f"/api/tournament/{tournament_id}/start-bracket")
+
+        # Get tournament status to see which prompt got the bye in round 1
+        response = client.get(f"/api/tournament/{tournament_id}/status")
+        status = response.get_json()
+
+        # Check for byes in round 1
+        if "1" in status.get("byes_by_round", {}):
+            round_1_byes = status["byes_by_round"]["1"]
+            for bye_prompt in round_1_byes:
+                bye_counts[bye_prompt] = bye_counts.get(bye_prompt, 0) + 1
+
+    print(f"📊 Bye distribution across {num_tournaments} tournaments:")
+    for prompt, count in sorted(bye_counts.items()):
+        percentage = (count / num_tournaments) * 100
+        print(f"   '{prompt}': {count}/{num_tournaments} ({percentage:.1f}%)")
+
+    # Verify that byes are somewhat distributed (not all going to same prompt)
+    if bye_counts:
+        max_byes = max(bye_counts.values())
+        min_byes = min(bye_counts.values())
+
+        # With randomness, no prompt should get ALL the byes
+        assert (
+            max_byes < num_tournaments
+        ), f"One prompt got all {max_byes} byes - randomness not working"
+
+        # With 5 prompts and good randomness, difference shouldn't be too extreme
+        # Allow some variance but ensure it's not completely skewed
+        assert (
+            max_byes - min_byes <= num_tournaments * 0.7
+        ), f"Bye distribution too skewed: max={max_byes}, min={min_byes}"
+
+        print(f"✅ Bye distribution looks random (max: {max_byes}, min: {min_byes})")
+    else:
+        print("⚠️  No byes detected in any tournament")

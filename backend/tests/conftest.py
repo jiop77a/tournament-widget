@@ -6,8 +6,10 @@ import os
 import tempfile
 
 import pytest
-from app import app, db
+from database import db
 from dotenv import load_dotenv
+from flask import Flask
+from flask_cors import CORS
 from models import InputQuestion, Match, Prompt, Tournament
 
 # Load environment variables
@@ -23,6 +25,9 @@ def test_app():
     Create a test Flask application with isolated database
     This ensures each test gets a fresh database
     """
+    # Create a completely separate Flask app instance for testing
+    app = Flask(__name__)
+
     # Create a temporary database file
     db_fd, db_path = tempfile.mkstemp(suffix=".db")
 
@@ -37,11 +42,25 @@ def test_app():
         }
     )
 
+    # Initialize database with this test app
+    db.init_app(app)
+    CORS(app)  # Enable CORS for test app
+
+    # Import and register the blueprint
+    from tournament_routes import tournament_bp
+
+    app.register_blueprint(tournament_bp, url_prefix="/api")
+
     with app.app_context():
         db.create_all()
         yield app
+
+        # Proper cleanup to avoid ResourceWarnings
         db.session.remove()
         db.drop_all()
+
+        # Close all connections and dispose of the engine
+        db.engine.dispose()
 
     # Clean up the temporary database file
     os.close(db_fd)
